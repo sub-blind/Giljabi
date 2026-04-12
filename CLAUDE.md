@@ -2,15 +2,6 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Local Dev Ports
-
-다른 프로젝트와 충돌 방지를 위해 기본 포트에서 변경됨:
-
-| 서비스 | 포트 |
-| --- | --- |
-| 백엔드 (FastAPI) | **8010** |
-| 프론트 (Next.js) | **3010** |
-
 ## Commands
 
 ### Backend (Python / FastAPI)
@@ -24,7 +15,7 @@ source .venv/bin/activate     # macOS/Linux
 pip install -r requirements.txt
 
 # 서버 실행
-uvicorn app.main:app --reload --port 8010
+uvicorn app.main:app --reload --port 8000
 ```
 
 ### Frontend (Next.js)
@@ -33,13 +24,16 @@ uvicorn app.main:app --reload --port 8010
 # web/ 폴더에서 실행 (루트에는 package.json 없음)
 cd web
 npm install
-npm run dev -- -p 3010
+npm run dev
 ```
 
 ### 확인 엔드포인트
 
-- `http://127.0.0.1:8010/healthz` — 헬스체크
-- `http://127.0.0.1:8010/docs` — Swagger UI (전체 API 목록)
+- `http://127.0.0.1:8000/healthz` — 헬스체크
+- `http://127.0.0.1:8000/docs` — Swagger UI (전체 API 목록)
+
+> 포트 충돌 시: `uvicorn ... --port 8010`, `npm run dev -- -p 3010` 등으로 변경 가능.
+> 프론트 API 베이스는 `NEXT_PUBLIC_API_BASE_URL` 환경변수로 덮어쓸 수 있음.
 
 ## Architecture
 
@@ -62,7 +56,7 @@ Tourism/
 │   ├── client.py               # httpx 래퍼 — TourAPI KorService2 호출
 │   └── operations.py           # KorServiceOp(StrEnum) — 오퍼레이션 이름 관리
 ├── contracts/
-│   └── openapi.yaml            # StoryRoute AI와의 API 계약서 (서버 기준 URL은 :8000 — 실제 로컬은 8010)
+│   └── openapi.yaml            # StoryRoute AI와의 API 계약서 (서버 기준 URL: :8000)
 ├── web/                        # Next.js 14 프론트엔드
 │   ├── app/page.tsx            # 루트: GangwonTravelPlanner 렌더
 │   ├── app/auth/               # 카카오 콜백 처리 페이지
@@ -95,7 +89,7 @@ Tourism/
 
 #### 프론트 API 베이스
 
-- `NEXT_PUBLIC_API_BASE_URL` 없으면 `http://127.0.0.1:8010` 하드코딩 (`web/lib/api.ts`)
+- `NEXT_PUBLIC_API_BASE_URL` 없으면 `http://127.0.0.1:8000` 기본값 (`web/lib/api.ts`)
 
 ## Environment Variables (.env)
 
