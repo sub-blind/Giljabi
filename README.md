@@ -9,7 +9,7 @@
 | 구분 | 기술 |
 | --- | --- |
 | Backend | Python, FastAPI, uvicorn |
-| Frontend | TypeScript, Next.js 14, Tailwind CSS |
+| Frontend | TypeScript, Next.js 14, Tailwind CSS, Zustand |
 | Auth | 카카오 OAuth2, JWT (HS256) |
 | Data | 한국관광공사 TourAPI (KorService2) |
 
@@ -47,8 +47,8 @@ uvicorn app.main:app --reload --port 8000
 
 ```bash
 cd web
-npm install
-npm run dev        # 기본 포트 3000
+pnpm install
+pnpm run dev        # 기본 포트 3000
 ```
 
 > 포트 충돌 시: `uvicorn ... --port 8010`, `npm run dev -- -p 3010`으로 변경 가능

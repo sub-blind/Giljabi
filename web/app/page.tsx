@@ -1,5 +1,9 @@
-import GangwonTravelPlanner from "@/components/GangwonTravelPlanner";
+'use client';
 
-export default function Page() {
-  return <GangwonTravelPlanner />;
+import HomePage from "./home/page";
+
+const Page = ()  => {
+  return <HomePage />;
 }
+
+export default Page;

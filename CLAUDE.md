@@ -18,21 +18,31 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 ```
 
-### Frontend (Next.js)
+### Frontend (Next.js + Turbopack)
 
 ```bash
 # web/ 폴더에서 실행 (루트에는 package.json 없음)
 cd web
-npm install
-npm run dev
+pnpm install   # 또는 npm install
+pnpm dev       # 또는 npm run dev
 ```
+
+> `pnpm dev` / `npm run dev`는 내부적으로 `next dev --turbopack`을 사용합니다.
+
+#### `pnpm install` 시 Corepack `Cannot find matching keyid` 오류
+
+Node에 포함된 **Corepack이 오래**면 패키지 매니저 메타데이터 서명 검증에 실패할 수 있습니다. 아래 중 하나로 해결합니다.
+
+1. Corepack만 최신으로 올린 뒤 다시 시도: `npm i -g corepack@latest` → `corepack enable` → `cd web && pnpm install`
+2. Corepack 없이 pnpm 사용: `brew install pnpm` (PATH에 Homebrew의 `pnpm`이 오면 Corepack 경로를 타지 않는 경우가 많음)
+3. 당장은 npm으로 동일 설치: `cd web && npm install && npm run dev`
 
 ### 확인 엔드포인트
 
 - `http://127.0.0.1:8000/healthz` — 헬스체크
 - `http://127.0.0.1:8000/docs` — Swagger UI (전체 API 목록)
 
-> 포트 충돌 시: `uvicorn ... --port 8010`, `npm run dev -- -p 3010` 등으로 변경 가능.
+> 포트 충돌 시: `uvicorn ... --port 8010`, `pnpm run dev -- -p 3010` 등으로 변경 가능.
 > 프론트 API 베이스는 `NEXT_PUBLIC_API_BASE_URL` 환경변수로 덮어쓸 수 있음.
 
 ## Architecture
