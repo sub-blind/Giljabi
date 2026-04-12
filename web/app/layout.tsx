@@ -1,15 +1,22 @@
 import type { Metadata } from "next";
+
+import { Providers } from "@/app/providers";
+
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "StoryRoute AI",
-  description: "누구나 쉽게 쓰는 여행 추천 웹앱",
+  title: "Giljabi",
+  description: "여행 코스 추천",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko">
-      <body className="antialiased text-slate-900">{children}</body>
+      <body className="app-viewport">
+        <Providers>
+          <div className="app-frame">{children}</div>
+        </Providers>
+      </body>
     </html>
   );
 }
