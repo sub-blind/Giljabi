@@ -1,0 +1,478 @@
+openapi: 3.1.0
+info:
+  title: Tourism API (StoryRoute contract)
+  version: 1.0.0
+  description: |
+    StoryRoute AI OpenAPI 브리지 — Tourism 레포 FastAPI는 `/api/v1` 아래에 동일 스키마로 구현.
+    루트 `GET /healthz` 는 계약과 동일.
+servers:
+  - url: http://localhost:8000
+paths:
+  /healthz:
+    get:
+      summary: Health check
+      operationId: healthz
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  service:
+                    type: string
+                required: [ok, service]
+  /api/v1/search:
+    get:
+      summary: Search places and itinerary candidates
+      operationId: searchPlaces
+      parameters:
+        - in: query
+          name: q
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: region
+          schema:
+            type: string
+        - in: query
+          name: companion
+          schema:
+            type: string
+        - in: query
+          name: duration
+          schema:
+            type: string
+        - in: query
+          name: pet
+          schema:
+            type: boolean
+        - in: query
+          name: accessibility
+          schema:
+            type: boolean
+        - in: query
+          name: page_no
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: num_of_rows
+          schema:
+            type: integer
+            default: 20
+        - in: query
+          name: area_code
+          schema:
+            type: integer
+            nullable: true
+            description: 미입력 시 강원(32) 기준 키워드 검색
+      responses:
+        '200':
+          description: Search result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+  /api/v1/places/{placeId}:
+    get:
+      summary: Get place detail
+      operationId: getPlaceDetail
+      parameters:
+        - in: path
+          name: placeId
+          required: true
+          schema:
+            type: string
+            description: "{contentTypeId}_{contentId}"
+      responses:
+        '200':
+          description: Place detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceDetailResponse'
+  /api/v1/planner/preview:
+    post:
+      summary: Generate itinerary preview
+      operationId: previewPlanner
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlannerPreviewRequest'
+      responses:
+        '200':
+          description: Itinerary preview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlannerPreviewResponse'
+  /api/v1/itineraries:
+    get:
+      summary: List itineraries
+      operationId: listItineraries
+      responses:
+        '200':
+          description: Itinerary list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ItinerarySummary'
+                required: [items]
+    post:
+      summary: Save itinerary
+      operationId: createItinerary
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateItineraryRequest'
+      responses:
+        '201':
+          description: Saved itinerary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItineraryDetail'
+  /api/v1/events:
+    post:
+      summary: Record frontend event
+      operationId: createEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserEventRequest'
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accepted:
+                    type: boolean
+                required: [accepted]
+  /api/v1/regions/{slug}:
+    get:
+      summary: Region landing data
+      operationId: getRegionLanding
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Region landing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegionLandingResponse'
+  /api/v1/admin/kpis:
+    get:
+      summary: Admin KPI cards
+      operationId: getAdminKpis
+      responses:
+        '200':
+          description: KPI payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminKpiResponse'
+  /api/v1/admin/ingestion:
+    get:
+      summary: Ingestion status
+      operationId: getIngestionStatus
+      responses:
+        '200':
+          description: Ingestion status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestionStatusResponse'
+components:
+  schemas:
+    SearchReason:
+      type: object
+      properties:
+        tags:
+          type: array
+          items:
+            type: string
+        sentence:
+          type: string
+      required: [tags, sentence]
+    PlaceCard:
+      type: object
+      properties:
+        placeId:
+          type: string
+        title:
+          type: string
+        region:
+          type: string
+        category:
+          type: string
+        summary:
+          type: string
+        thumbnailUrl:
+          type: string
+          nullable: true
+        reason:
+          $ref: '#/components/schemas/SearchReason'
+      required: [placeId, title, region, category, summary, reason]
+    MapMarker:
+      type: object
+      properties:
+        placeId:
+          type: string
+        lat:
+          type: number
+        lng:
+          type: number
+        title:
+          type: string
+      required: [placeId, lat, lng, title]
+    SearchResponse:
+      type: object
+      properties:
+        query:
+          type: string
+        total:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlaceCard'
+        markers:
+          type: array
+          items:
+            $ref: '#/components/schemas/MapMarker'
+      required: [query, total, items, markers]
+    PlaceAsset:
+      type: object
+      properties:
+        kind:
+          type: string
+          enum: [image, audio, link, story]
+        url:
+          type: string
+        title:
+          type: string
+          nullable: true
+      required: [kind, url]
+    NearbyPlace:
+      type: object
+      properties:
+        placeId:
+          type: string
+        title:
+          type: string
+        relationType:
+          type: string
+        summary:
+          type: string
+      required: [placeId, title, relationType, summary]
+    PlaceDetailResponse:
+      type: object
+      properties:
+        placeId:
+          type: string
+        title:
+          type: string
+        region:
+          type: string
+        category:
+          type: string
+        address:
+          type: string
+        summary:
+          type: string
+        story:
+          type: string
+        assets:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlaceAsset'
+        nearby:
+          type: array
+          items:
+            $ref: '#/components/schemas/NearbyPlace'
+      required: [placeId, title, region, category, address, summary, story, assets, nearby]
+    PlannerConstraint:
+      type: object
+      properties:
+        region:
+          type: string
+        days:
+          type: integer
+        companions:
+          type: array
+          items:
+            type: string
+        transport:
+          type: string
+        moods:
+          type: array
+          items:
+            type: string
+        mobility:
+          type: string
+      required: [region, days]
+    PlannerPreviewRequest:
+      type: object
+      properties:
+        query:
+          type: string
+        constraints:
+          $ref: '#/components/schemas/PlannerConstraint'
+      required: [query, constraints]
+    ItineraryStop:
+      type: object
+      properties:
+        dayNo:
+          type: integer
+        stopOrder:
+          type: integer
+        timeLabel:
+          type: string
+        placeId:
+          type: string
+        placeTitle:
+          type: string
+        stayMinutes:
+          type: integer
+        reason:
+          type: string
+      required: [dayNo, stopOrder, timeLabel, placeId, placeTitle, stayMinutes, reason]
+    PlannerPreviewResponse:
+      type: object
+      properties:
+        draftId:
+          type: string
+        title:
+          type: string
+        summary:
+          type: string
+        stops:
+          type: array
+          items:
+            $ref: '#/components/schemas/ItineraryStop'
+      required: [draftId, title, summary, stops]
+    CreateItineraryRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        sourceDraftId:
+          type: string
+          nullable: true
+        stops:
+          type: array
+          items:
+            $ref: '#/components/schemas/ItineraryStop'
+      required: [title, stops]
+    ItinerarySummary:
+      type: object
+      properties:
+        itineraryId:
+          type: string
+        title:
+          type: string
+        region:
+          type: string
+        savedAt:
+          type: string
+          format: date-time
+      required: [itineraryId, title, region, savedAt]
+    ItineraryDetail:
+      allOf:
+        - $ref: '#/components/schemas/ItinerarySummary'
+        - type: object
+          properties:
+            stops:
+              type: array
+              items:
+                $ref: '#/components/schemas/ItineraryStop'
+          required: [stops]
+    UserEventRequest:
+      type: object
+      properties:
+        eventName:
+          type: string
+        sessionId:
+          type: string
+        placeId:
+          type: string
+          nullable: true
+        itineraryId:
+          type: string
+          nullable: true
+        payload:
+          type: object
+          additionalProperties: true
+      required: [eventName, sessionId, payload]
+    RegionLandingResponse:
+      type: object
+      properties:
+        slug:
+          type: string
+        heroTitle:
+          type: string
+        heroSubtitle:
+          type: string
+        topIntents:
+          type: array
+          items:
+            type: string
+        keyPlaces:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlaceCard'
+      required: [slug, heroTitle, heroSubtitle, topIntents, keyPlaces]
+    KpiCard:
+      type: object
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        value:
+          type: string
+      required: [key, label, value]
+    AdminKpiResponse:
+      type: object
+      properties:
+        cards:
+          type: array
+          items:
+            $ref: '#/components/schemas/KpiCard'
+      required: [cards]
+    IngestionStatusResponse:
+      type: object
+      properties:
+        source:
+          type: string
+        status:
+          type: string
+        lastSuccessAt:
+          type: string
+          format: date-time
+          nullable: true
+      required: [source, status]

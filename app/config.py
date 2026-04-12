@@ -1,0 +1,34 @@
+from functools import lru_cache
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    tour_api_service_key: str = ""
+    # KorService2 베이스 (문서·미리보기가 *2 인 경우)
+    tour_api_kor_service_base: str = "http://apis.data.go.kr/B551011/KorService2"
+    tour_api_mobile_app: str = "Tourism"
+    tour_api_mobile_os: str = "ETC"
+
+    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000,http://127.0.0.1:5173"
+    kakao_rest_api_key: str = ""
+    kakao_client_secret: str = ""
+    kakao_redirect_uri: str = "http://127.0.0.1:8000/api/v1/auth/kakao/callback"
+    kakao_logout_redirect_uri: str = "http://127.0.0.1:3000"
+    auth_frontend_success_url: str = "http://127.0.0.1:3000/auth/callback?status=success"
+    auth_frontend_failure_url: str = "http://127.0.0.1:3000/auth/callback?status=error"
+    auth_jwt_secret: str = ""
+    auth_access_token_ttl_seconds: int = 900
+    auth_refresh_token_ttl_seconds: int = 1209600
+    auth_secure_cookies: bool = False
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()

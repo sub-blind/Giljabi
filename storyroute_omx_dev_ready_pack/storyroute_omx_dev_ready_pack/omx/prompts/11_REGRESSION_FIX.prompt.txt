@@ -1,0 +1,24 @@
+You are running a regression repair loop for StoryRoute AI.
+
+Read first:
+1. /workspace/AGENTS.md
+2. /workspace/PLANS.md
+3. /input/docs/execution/16_VALIDATION_AND_DOD_FINAL.md
+4. the failing test output
+5. any route or service docs relevant to the failing area
+
+Your job:
+- inspect failures first
+- identify the narrowest fix
+- preserve contract shape
+- update tests only if behavior intentionally changed
+- update docs if the fix changes the expected behavior
+- run the smallest relevant test set first, then full validation if the area stabilizes
+
+Write report to:
+- /output/reports/11_regression_fix.md
+
+Done when:
+- the failing tests are resolved
+- no unrelated refactor was introduced
+- diff summary and risk notes are written

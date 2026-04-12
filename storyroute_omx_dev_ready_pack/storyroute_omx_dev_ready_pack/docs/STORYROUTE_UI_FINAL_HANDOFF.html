@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>StoryRoute AI — UI Final Handoff</title>
+  <style>
+    :root{
+      --bg:#07101f;
+      --bg2:#0f1d38;
+      --card:#ffffff;
+      --soft:#f4f7ff;
+      --line:#dbe5f5;
+      --text:#122038;
+      --muted:#5b6b88;
+      --primary:#6c63ff;
+      --accent:#22c4ff;
+      --green:#11c18b;
+      --radius:22px;
+      --shadow:0 18px 38px rgba(12,20,36,.08);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+      color:var(--text);
+      background:linear-gradient(180deg,#eef4ff 0,#fff 360px);
+    }
+    .page{max-width:1320px;margin:0 auto;padding:28px 20px 72px}
+    .hero{
+      background:linear-gradient(135deg,var(--bg),var(--bg2));
+      color:#fff;border-radius:32px;padding:32px;box-shadow:0 24px 60px rgba(5,12,26,.28)
+    }
+    .badge{display:inline-flex;align-items:center;padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);font-size:12px;font-weight:800}
+    h1{font-size:52px;line-height:1.05;letter-spacing:-1.6px;margin:16px 0 12px}
+    p{line-height:1.7}
+    .hero p{max-width:900px;color:rgba(255,255,255,.84);font-size:17px}
+    .actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:18px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;padding:12px 16px;border-radius:14px;font-weight:800;text-decoration:none}
+    .btn.primary{background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff}
+    .btn.ghost{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.18)}
+    .section{margin-top:28px}
+    .section h2{font-size:30px;letter-spacing:-1px;margin:0 0 10px}
+    .section p.head{margin:0 0 18px;color:var(--muted)}
+    .grid{display:grid;gap:16px}
+    .grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px}
+    .screen{display:grid;gap:14px}
+    .screen .name{font-size:24px;font-weight:900}
+    .mini{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#6a7ba0;font-weight:900}
+    ul{margin:10px 0 0;padding-left:20px;color:var(--muted);line-height:1.8}
+    .wireframe{border:1px solid var(--line);background:linear-gradient(180deg,#fbfdff,#f4f8ff);border-radius:18px;padding:14px;min-height:220px}
+    .bar{height:18px;border-radius:999px;background:#e8efff;margin-bottom:10px}
+    .row{display:grid;gap:10px}
+    .row.cols3{grid-template-columns:220px 1fr 300px}
+    .row.cols2{grid-template-columns:1fr 1fr}
+    .box{border:1px dashed #b8c7e3;border-radius:16px;padding:12px;background:#fff;color:#52627e;font-size:14px;font-weight:700;min-height:70px}
+    .token{display:grid;grid-template-columns:140px 1fr;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+    .token:last-child{border-bottom:none}
+    .flow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+    .step{padding:18px;border-radius:18px;border:1px solid var(--line);background:#fff;box-shadow:var(--shadow)}
+    .step strong{display:block;font-size:18px;margin-bottom:8px}
+    .foot{margin-top:22px;color:var(--muted);font-size:14px}
+    @media (max-width: 1080px){
+      .grid.two,.grid.three,.flow{grid-template-columns:1fr}
+      .row.cols3,.row.cols2{grid-template-columns:1fr}
+      h1{font-size:40px}
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="hero">
+      <div class="badge">UI Final Handoff · StoryRoute AI</div>
+      <h1>바로 구현 가능한<br>최종 UI 핸드오프</h1>
+      <p>
+        이 문서는 최종 개발 직전 기준으로 정리한 UI 핸드오프다.
+        route, layout, 상태, CTA, component boundary, mobile rule, API 연결 지점을 문서형으로 다시 고정했고,
+        상세한 플레이어블 프로토타입은 별도 reference HTML로 함께 제공한다.
+      </p>
+      <div class="actions">
+        <a class="btn primary" href="./STORYROUTE_UI_FINAL_PROTOTYPE.html">최종 프로토타입 열기</a>
+        <a class="btn ghost" href="../reference/storyroute_ai_full_ui_prototype_original.html">원본 프로토타입 보기</a>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Route Map</h2>
+      <p class="head">MVP 기준 7개 route를 기준으로 설계한다.</p>
+      <div class="grid three">
+        <div class="card screen"><div class="mini">Home</div><div class="name">/</div><p>자연어 질의로 탐색을 시작하는 첫 화면</p></div>
+        <div class="card screen"><div class="mini">Search</div><div class="name">/search</div><p>필터/리스트/지도/추천 근거 비교 화면</p></div>
+        <div class="card screen"><div class="mini">Place</div><div class="name">/place/[id]</div><p>결정 완료를 돕는 깊은 정보 화면</p></div>
+        <div class="card screen"><div class="mini">Planner</div><div class="name">/planner</div><p>제약을 일정으로 변환하는 workspace</p></div>
+        <div class="card screen"><div class="mini">Trips</div><div class="name">/trips</div><p>저장/재사용/공유 이력 중심 화면</p></div>
+        <div class="card screen"><div class="mini">Region</div><div class="name">/region/[slug]</div><p>공모전 지역특화 랜딩</p></div>
+      </div>
+      <div class="grid one" style="margin-top:16px">
+        <div class="card screen"><div class="mini">Admin</div><div class="name">/admin</div><p>추천 성과/수집 상태/KPI 확인 화면</p></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Primary User Flow</h2>
+      <p class="head">사용자 경험은 검색 → 상세 → 플래너 → 저장/공유 흐름을 기본으로 한다.</p>
+      <div class="flow">
+        <div class="step"><strong>1. 질의 입력</strong><p>자연어 검색, chips, 샘플 질의</p></div>
+        <div class="step"><strong>2. 탐색</strong><p>리스트 + 지도 + 필터 + 추천 이유</p></div>
+        <div class="step"><strong>3. 의사결정</strong><p>상세 정보, 스토리, 주변 추천</p></div>
+        <div class="step"><strong>4. 일정 확정</strong><p>일자별 itinerary 생성, 수정, 저장</p></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Screen Blueprints</h2>
+      <p class="head">각 화면은 실제 구현 시 shell 구조를 그대로 따라간다.</p>
+      <div class="grid two">
+        <div class="card">
+          <div class="mini">Home</div>
+          <div class="wireframe">
+            <div class="bar"></div>
+            <div class="row">
+              <div class="box">Hero copy + 자연어 입력창</div>
+              <div class="box">Quick chips + 샘플 질의</div>
+              <div class="box">지역특화 진입 / 최근 저장 itinerary</div>
+            </div>
+          </div>
+          <ul>
+            <li>첫 CTA는 반드시 검색 진입</li>
+            <li>최근 검색/저장 일정은 2차 정보</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <div class="mini">Search</div>
+          <div class="wireframe">
+            <div class="bar"></div>
+            <div class="row cols3">
+              <div class="box">Filter sidebar</div>
+              <div class="box">Result list / reason cards</div>
+              <div class="box">Map / itinerary preview</div>
+            </div>
+          </div>
+          <ul>
+            <li>필터, 결과, 지도 3열 구조</li>
+            <li>loading / empty / partial error state 필요</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <div class="mini">Place Detail</div>
+          <div class="wireframe">
+            <div class="bar"></div>
+            <div class="row cols2">
+              <div class="box">Hero image + info + story</div>
+              <div class="box">Nearby places + reason + add to planner</div>
+            </div>
+          </div>
+          <ul>
+            <li>AI 요약과 스토리 카드가 차별점</li>
+            <li>CTA는 일정 추가 / 공유 / 플래너 보기</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <div class="mini">Planner</div>
+          <div class="wireframe">
+            <div class="bar"></div>
+            <div class="row cols3">
+              <div class="box">Constraint + agent panel</div>
+              <div class="box">Day-by-day itinerary</div>
+              <div class="box">Map + distance summary</div>
+            </div>
+          </div>
+          <ul>
+            <li>generated / modified / saved 상태 분리</li>
+            <li>MVP는 up/down edit만 지원</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <div class="mini">Trips / Region</div>
+          <div class="wireframe">
+            <div class="row cols2">
+              <div class="box">Saved trips / recent rebuild / liked places</div>
+              <div class="box">Region hero / key places / intent cards</div>
+            </div>
+          </div>
+          <ul>
+            <li>Trips는 재사용 허브</li>
+            <li>Region은 공모전 지역특화 포인트</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <div class="mini">Admin</div>
+          <div class="wireframe">
+            <div class="row">
+              <div class="box">KPI cards</div>
+              <div class="box">Top intents / combinations / ingestion status</div>
+            </div>
+          </div>
+          <ul>
+            <li>MVP는 desktop 우선</li>
+            <li>fixture 기반 KPI부터 시작</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Design Tokens</h2>
+      <div class="grid two">
+        <div class="card">
+          <div class="token"><strong>Typography</strong><span>Hero 36/44 · H1 28/36 · H2 22/30 · Body 16/24 · Caption 13/18</span></div>
+          <div class="token"><strong>Radius</strong><span>Card 16 · Input 14 · Pill 9999</span></div>
+          <div class="token"><strong>Spacing</strong><span>4 / 8 / 12 / 16 / 24 / 32 / 48</span></div>
+        </div>
+        <div class="card">
+          <div class="token"><strong>Tone</strong><span>따뜻한 여행 서비스 톤, 기술 용어보다 맥락 중심</span></div>
+          <div class="token"><strong>Reason copy</strong><span>태그보다 human-readable 문장 우선</span></div>
+          <div class="token"><strong>Mobile</strong><span>Search는 filter drawer, Detail CTA sticky, Planner map bottom sheet</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Engineering Mapping</h2>
+      <div class="grid two">
+        <div class="card">
+          <div class="mini">Frontend</div>
+          <ul>
+            <li>Next.js App Router</li>
+            <li>route shell 우선</li>
+            <li>fixture/mock 응답 우선</li>
+            <li>shared components: PlaceCard, StoryCard, ItineraryStopCard</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="mini">Backend / Contract</div>
+          <ul>
+            <li>FastAPI + OpenAPI contract-first</li>
+            <li>Search / Place / Planner / Events / Admin route 구분</li>
+            <li>canonical place row를 그대로 UI에 노출하지 않음</li>
+          </ul>
+        </div>
+      </div>
+      <div class="foot">
+        구현 기준 문서는 `docs/04_UI_FINAL_SPEC.md`, 상태 기준은 `docs/05_UI_STATE_MATRIX.md`, 컴포넌트 기준은 `docs/06_COMPONENT_CATALOG.md`를 본다.
+      </div>
+    </section>
+  </div>
+</body>
+</html>

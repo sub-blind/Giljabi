@@ -1,0 +1,47 @@
+You are implementing StoryRoute AI Milestone M1 Unit D — Trips, Region Landing, and Admin.
+
+Read these files first:
+1. /workspace/AGENTS.md
+2. /input/docs/product/01_PRD_FINAL.md
+3. /input/docs/product/02_PROJECT_BRIEF_FINAL.md
+4. /input/docs/ui/04_UI_FINAL_SPEC.md
+5. /input/docs/ui/05_UI_STATE_MATRIX.md
+6. /input/docs/api/12_API_CONTRACT_BLUEPRINT.md
+7. /input/docs/api/openapi.yaml
+8. /input/docs/analytics/13_EVENT_LOG_SCHEMA.md
+9. /input/docs/execution/15_IMPLEMENTATION_BACKLOG_FINAL.md
+10. /input/docs/execution/16_VALIDATION_AND_DOD_FINAL.md
+
+Implement:
+- apps/web `/trips`
+- apps/web `/region/[slug]`
+- apps/web `/admin`
+- apps/api mock routes for the minimum needed data:
+  - GET /v1/itineraries
+  - POST /v1/events or equivalent mock sink if contract says so
+  - GET /v1/admin/kpis
+- fixtures for trips list, region hero data, admin KPI data
+
+Expectations:
+- Trips shows saved itinerary cards and re-entry points
+- Region landing emphasizes region hero, key places, recommended intentions, and CTA into planner
+- Admin shows KPI cards, top intents/regions/combos placeholders or charts
+- use shared components where reasonable, but do not over-abstract
+- keep contract-first
+
+Preferred execution mode:
+- use `$team 3:executor` if the repo is already stable after Home/Search/Place/Planner
+- otherwise use a single-owner loop and keep scope tighter
+
+Tests:
+- smoke route coverage for `/trips`, `/region/[slug]`, `/admin`
+- api mock route tests
+- shared navigation smoke
+
+Write report to:
+- /output/reports/05_m1_trips_region_admin.md
+
+Done when:
+- all three route shells render from fixtures
+- minimal admin KPIs render
+- validation commands pass

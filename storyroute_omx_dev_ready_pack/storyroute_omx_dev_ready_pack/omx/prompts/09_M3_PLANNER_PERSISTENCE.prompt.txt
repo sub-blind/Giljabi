@@ -1,0 +1,33 @@
+You are implementing StoryRoute AI Milestone M3 Unit B — Planner Persistence and Itinerary Save/Load.
+
+Read these files first:
+1. /workspace/AGENTS.md
+2. /input/docs/product/01_PRD_FINAL.md
+3. /input/docs/api/openapi.yaml
+4. /input/docs/data/10_DATA_MODEL_FINAL.md
+5. /input/docs/analytics/13_EVENT_LOG_SCHEMA.md
+6. /input/docs/execution/16_VALIDATION_AND_DOD_FINAL.md
+
+Implement:
+- itinerary draft save/load APIs
+- itinerary persistence layer
+- planner preview -> save -> load flow
+- clear distinction between draft and saved states
+- frontend integration for save/load in planner and trips
+
+Constraints:
+- keep data model aligned with canonical docs
+- explanation fields stay present
+- avoid overbuilding auth; use local/mock identity or single-user assumption if needed for MVP
+
+Tests:
+- save/load itinerary API test
+- planner generate/save smoke
+- trips route reads saved itinerary data
+
+Write report to:
+- /output/reports/09_m3_planner_persistence.md
+
+Done when:
+- users can preview, save, and reload an itinerary in the local/mock environment
+- tests pass

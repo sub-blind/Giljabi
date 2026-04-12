@@ -1,0 +1,59 @@
+You are implementing StoryRoute AI Milestone M0 — Build Ready.
+
+Read these files before changing code:
+1. /workspace/README.md
+2. /workspace/AGENTS.md
+3. /workspace/PLANS.md
+4. /input/docs/00-index.md
+5. /input/docs/product/01_PRD_FINAL.md
+6. /input/docs/ui/04_UI_FINAL_SPEC.md
+7. /input/docs/architecture/07_TECH_STACK_FINAL.md
+8. /input/docs/architecture/14_REPO_STRUCTURE_FINAL.md
+9. /input/docs/api/12_API_CONTRACT_BLUEPRINT.md
+10. /input/docs/api/openapi.yaml
+11. /input/docs/execution/15_IMPLEMENTATION_BACKLOG_FINAL.md
+12. /input/docs/execution/16_VALIDATION_AND_DOD_FINAL.md
+
+Goal:
+Turn this handoff pack into a runnable monorepo skeleton that OmX can iterate on.
+
+Implement at minimum:
+- root workspace setup for pnpm workspace + turbo
+- root package.json and scripts for lint/typecheck/test/verify
+- apps/web skeleton with route placeholders
+- apps/api skeleton with FastAPI app and /healthz
+- packages/ui skeleton
+- tests/e2e skeleton
+- fixture directories for web/api
+- minimal lint/typecheck/test configs so validation commands are real
+- docs/14_REPO_STRUCTURE_FINAL.md, docs/21_RELEASE_SCOPE_AND_MILESTONES.md, docs/22_DEVELOPMENT_ENV_AND_DEPLOY.md, docs/23_PRODUCT_GLOSSARY.md if absent
+- ensure packages/contracts/openapi.yaml stays the contract source of truth
+
+Constraints:
+- mock-first
+- contract-first
+- no external API integration
+- no schema changes unless docs also update
+- use minimal reversible scaffolding
+- do not spend time polishing production infra
+
+You may create placeholder implementations, but they must be internally consistent and testable.
+
+Update these docs if reality changes:
+- /workspace/docs/14_REPO_STRUCTURE_FINAL.md
+- /workspace/docs/16_VALIDATION_AND_DOD_FINAL.md
+- /workspace/README.md
+
+Write a completion report to:
+- /output/reports/01_m0_build_ready.md
+
+Done when all of these are true:
+- repo has apps/web, apps/api, packages/ui, tests/e2e
+- /healthz exists in api
+- validation commands are present and meaningful
+- pnpm lint
+- pnpm typecheck
+- pnpm test
+- pytest
+all pass, or if a command is not yet meaningful, create the minimum files required to make it meaningful and passing
+- no failing tests remain

@@ -1,0 +1,32 @@
+You are implementing StoryRoute AI Milestone M2 Unit B — TourAPI Adapter and Ingestion.
+
+Read these files first:
+1. /workspace/AGENTS.md
+2. /input/docs/data/09_DATA_SOURCES_AND_INGESTION_FINAL.md
+3. /input/docs/data/11_ETL_SYNC_RUNBOOK.md
+4. /input/docs/data/storyroute_schema_simplified.sql
+5. /input/docs/api/openapi.yaml
+6. /input/docs/execution/16_VALIDATION_AND_DOD_FINAL.md
+
+Implement:
+- apps/api adapter layer under something like `app/adapters/tourapi`
+- raw payload preservation path
+- source mapping preservation path
+- bootstrap ingestion entrypoint
+- delta sync structure or placeholders
+- canonical upsert pipeline from raw payload -> place/profile/asset/relation/search_chunk
+- fixture-driven ingestion tests so no real TourAPI key is needed in CI
+
+Hard constraints:
+- frontend must not call TourAPI directly
+- adapters must be swappable
+- keep mock compatibility intact
+- do not require network access in automated tests
+
+Write report to:
+- /output/reports/07_m2_tourapi_adapter.md
+
+Done when:
+- fixture payload can flow into canonical model code
+- ingestion entrypoint exists
+- tests pass without external keys

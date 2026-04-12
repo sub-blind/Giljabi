@@ -1,0 +1,41 @@
+You are implementing StoryRoute AI Milestone M1 Unit C — Planner.
+
+Read these files in order:
+1. /workspace/AGENTS.md
+2. /input/docs/product/01_PRD_FINAL.md
+3. /input/docs/ui/04_UI_FINAL_SPEC.md
+4. /input/docs/ui/05_UI_STATE_MATRIX.md
+5. /input/docs/api/12_API_CONTRACT_BLUEPRINT.md
+6. /input/docs/api/openapi.yaml
+7. /input/docs/data/13_EVENT_LOG_SCHEMA.md if present in repo or /input/docs/analytics/13_EVENT_LOG_SCHEMA.md
+8. /input/docs/execution/16_VALIDATION_AND_DOD_FINAL.md
+
+Implement:
+- apps/web route `/planner`
+- apps/api mock route `POST /v1/planner/preview`
+- planner constraint form
+- generated / generating / modified / saved UI states
+- day tabs
+- itinerary stop list
+- map panel placeholder
+- save CTA shell
+- explanation text for each stop or for the itinerary summary
+
+Behavior:
+- planner preview works from mock fixtures
+- modified state appears when user edits constraint inputs
+- planner UI does not depend on drag-and-drop; MVP supports clear list rendering and simple edit actions
+- planner result must include explanation, not just raw stop names
+
+Tests:
+- planner preview smoke
+- planner state rendering smoke
+- optional save CTA interaction smoke
+
+Write a report to:
+- /output/reports/04_m1_planner.md
+
+Done when:
+- planner preview route works
+- planner screen renders draft/generating/generated/modified states
+- validation commands pass

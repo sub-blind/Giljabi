@@ -1,0 +1,29 @@
+You are implementing StoryRoute AI Milestone M3 Unit A — Hybrid Search v1.
+
+Read these files in order:
+1. /workspace/AGENTS.md
+2. /input/docs/product/01_PRD_FINAL.md
+3. /input/docs/data/10_DATA_MODEL_FINAL.md
+4. /input/docs/api/openapi.yaml
+5. /input/docs/architecture/08_SYSTEM_ARCHITECTURE_FINAL.md
+6. /input/docs/execution/16_VALIDATION_AND_DOD_FINAL.md
+
+Implement:
+- internal retrieval service composition for BM25 + vector + filter
+- explainable search reasons
+- result ranking that keeps region/category/attribute filters explicit
+- a seam for relation expansion, even if relation scoring is still simplified
+- search tests that prove reasons remain stable and human-readable
+
+Constraints:
+- planner must depend on retrieval service, not raw DB calls
+- UI result shape must remain compatible
+- if dense retrieval is mocked locally, isolate that behind an interface
+
+Write report to:
+- /output/reports/08_m3_hybrid_search.md
+
+Done when:
+- search service composes lexical + dense + filters
+- reasons are explainable
+- tests pass

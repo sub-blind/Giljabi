@@ -1,0 +1,41 @@
+You are implementing StoryRoute AI Milestone M2 Unit A — Data Foundation.
+
+Read these files in order:
+1. /workspace/AGENTS.md
+2. /input/docs/data/09_DATA_SOURCES_AND_INGESTION_FINAL.md
+3. /input/docs/data/10_DATA_MODEL_FINAL.md
+4. /input/docs/data/11_ETL_SYNC_RUNBOOK.md
+5. /input/docs/data/storyroute_schema_simplified.sql
+6. /input/docs/data/storyroute_schema_merge_map.md
+7. /input/docs/api/openapi.yaml
+8. /input/docs/execution/16_VALIDATION_AND_DOD_FINAL.md
+
+Implement:
+- backend canonical model skeletons for:
+  - place
+  - place_profile
+  - place_asset
+  - entity_relation
+  - search_chunk
+  - region_metric
+  - user_event
+  - itinerary / itinerary_stop / agent_run
+- fixture seed loaders or repository stubs
+- clear separation between raw source payloads and canonical entities
+- any minimal DB or persistence scaffolding needed for local work
+
+Constraints:
+- keep `place` thin
+- preserve raw/source mapping concepts
+- do not put provider fields into UI-facing models
+- do not force full production DB wiring if it blocks local progress; repository abstractions and fixtures are acceptable in this phase
+
+Update docs if model names or responsibilities drift.
+
+Write report to:
+- /output/reports/06_m2_data_foundation.md
+
+Done when:
+- canonical entities are represented in code
+- fixture seed path exists
+- tests pass

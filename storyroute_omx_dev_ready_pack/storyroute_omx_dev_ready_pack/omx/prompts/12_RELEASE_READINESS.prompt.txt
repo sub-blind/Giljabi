@@ -1,0 +1,34 @@
+You are preparing StoryRoute AI for a demo-ready release review.
+
+Read these files:
+1. /workspace/AGENTS.md
+2. /input/docs/product/01_PRD_FINAL.md
+3. /input/docs/product/02_PROJECT_BRIEF_FINAL.md
+4. /input/docs/ui/04_UI_FINAL_SPEC.md
+5. /input/docs/execution/15_IMPLEMENTATION_BACKLOG_FINAL.md
+6. /input/docs/execution/16_VALIDATION_AND_DOD_FINAL.md
+7. /input/docs/product/21_RELEASE_SCOPE_AND_MILESTONES.md
+8. /input/docs/reference/STORYROUTE_UI_FINAL_PROTOTYPE.html
+
+Your job:
+- audit route completeness
+- audit API contract completeness
+- audit data/model/event coverage
+- audit test coverage for critical journeys
+- identify any missing copy, placeholder sections, or broken demo paths
+- fix only what is necessary to make the demo coherent and reliable
+- produce a release checklist and remaining risk list
+
+Critical journeys:
+- home -> search -> place -> planner
+- planner preview -> save -> trips
+- region landing -> planner
+- admin KPI render
+
+Write:
+- /output/reports/12_release_readiness.md
+
+Done when:
+- all critical journeys are runnable in the local/mock environment
+- validation commands pass
+- remaining gaps are explicitly listed

@@ -1,0 +1,37 @@
+You are auditing the StoryRoute AI repository before implementation.
+
+Read these files in this order:
+1. /workspace/README.md
+2. /input/docs/00-index.md
+3. /workspace/AGENTS.md
+4. /workspace/PLANS.md
+5. /input/docs/product/01_PRD_FINAL.md
+6. /input/docs/ui/04_UI_FINAL_SPEC.md
+7. /input/docs/architecture/07_TECH_STACK_FINAL.md
+8. /input/docs/api/12_API_CONTRACT_BLUEPRINT.md
+9. /input/docs/api/openapi.yaml
+10. /input/docs/execution/15_IMPLEMENTATION_BACKLOG_FINAL.md
+11. /input/docs/execution/16_VALIDATION_AND_DOD_FINAL.md
+12. /input/docs/execution/18_AGENT_CONTEXT.md
+
+Your job:
+- map the current repository tree
+- compare the current tree to the expected tree from the docs
+- identify missing folders, missing routes, missing mock APIs, missing tests, and missing docs
+- identify doc mismatches, especially if docs/00_INDEX references files that do not exist
+- identify whether the repo is still at M0, partially at M1, or further
+- propose the next 3 implementation units in priority order
+
+Do not implement code yet.
+
+Write one report to:
+- /output/reports/00_repo_gap_analysis.md
+
+The report must contain:
+1. current repo map
+2. missing assets
+3. doc inconsistencies
+4. recommended next milestone
+5. exact validation commands that will define done
+
+If something is unclear but not blocking, make a grounded assumption and record it in the report.

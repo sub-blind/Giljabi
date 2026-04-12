@@ -1,0 +1,43 @@
+You are implementing StoryRoute AI Milestone M1 Unit B — Place Detail.
+
+Read these files first:
+1. /workspace/AGENTS.md
+2. /input/docs/product/01_PRD_FINAL.md
+3. /input/docs/ui/04_UI_FINAL_SPEC.md
+4. /input/docs/ui/05_UI_STATE_MATRIX.md
+5. /input/docs/ui/06_COMPONENT_CATALOG.md
+6. /input/docs/api/12_API_CONTRACT_BLUEPRINT.md
+7. /input/docs/api/openapi.yaml
+8. /input/docs/data/10_DATA_MODEL_FINAL.md
+9. /input/docs/execution/16_VALIDATION_AND_DOD_FINAL.md
+
+Implement:
+- apps/web route `/place/[id]`
+- apps/api mock route `GET /v1/places/{placeId}`
+- shared fixture for place detail response matching OpenAPI
+- hero image shell
+- basic info card
+- AI summary / story card
+- nearby related places section
+- reason tags / CTA section
+- “일정에 추가” CTA and “플래너에서 보기” CTA
+- operating info / caution shell
+
+Requirements:
+- the UI must render entirely from internal API response shape
+- no direct reference to raw provider fields in the component tree
+- nearby places must come from a fixture array, not hard-coded markup
+- if some sections are unavailable, render graceful fallback state
+
+Tests:
+- place detail route smoke
+- api schema/shape test for mock response
+- optional Playwright path from search -> place
+
+Write a report to:
+- /output/reports/03_m1_place_detail.md
+
+Done when:
+- place detail renders hero/info/story/nearby/CTA
+- response shape aligns with OpenAPI
+- tests and validation commands pass

@@ -1,0 +1,15 @@
+profile = "repo-default"
+
+[profiles.repo-default]
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+[profiles.repo-default.sandbox_workspace_write]
+network_access = false
+
+[profiles.deep-review]
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+[profiles.deep-review.sandbox_workspace_write]
+network_access = false

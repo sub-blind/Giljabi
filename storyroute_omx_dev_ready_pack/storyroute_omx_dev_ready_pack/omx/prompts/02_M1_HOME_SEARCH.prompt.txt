@@ -1,0 +1,55 @@
+You are implementing StoryRoute AI Milestone M1 Unit A — Home and Search.
+
+Read these files in order:
+1. /workspace/AGENTS.md
+2. /workspace/PLANS.md
+3. /input/docs/product/01_PRD_FINAL.md
+4. /input/docs/product/03_FEATURE_DEFINITION_FINAL.md
+5. /input/docs/ui/04_UI_FINAL_SPEC.md
+6. /input/docs/ui/05_UI_STATE_MATRIX.md
+7. /input/docs/ui/06_COMPONENT_CATALOG.md
+8. /input/docs/api/12_API_CONTRACT_BLUEPRINT.md
+9. /input/docs/api/openapi.yaml
+10. /input/docs/execution/16_VALIDATION_AND_DOD_FINAL.md
+11. /input/docs/reference/STORYROUTE_UI_FINAL_PROTOTYPE.html if you need visual grounding
+
+Implement:
+- apps/web route `/`
+- apps/web route `/search`
+- query composer / quick chips / hero / results shell / filter shell / map panel placeholder
+- URL state sync for the main search query and key filters
+- mock data fixtures only
+- any internal UI components needed, but keep abstraction light
+
+If the API route does not yet exist, also implement a minimal mock route in apps/api for:
+- GET or POST search endpoint matching the OpenAPI contract
+
+Must-have behaviors:
+- chip click updates query
+- submit navigates home -> search
+- search results render at least one place card from fixtures
+- empty/filter/loading states have explicit shells
+- search -> place detail CTA can navigate even if detail is still placeholder
+
+Tests:
+- route navigation smoke
+- home -> search smoke in Playwright
+- minimal unit/component test where useful
+
+Do not:
+- call real TourAPI
+- embed provider-specific fields directly into UI
+- change OpenAPI without syncing docs/tests
+
+Write a report to:
+- /output/reports/02_m1_home_search.md
+
+Done when:
+- `/` and `/search` render correctly
+- Playwright smoke covers home -> search
+- pnpm lint
+- pnpm typecheck
+- pnpm test
+- pytest
+- pnpm playwright test
+pass

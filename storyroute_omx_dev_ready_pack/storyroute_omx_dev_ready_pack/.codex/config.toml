@@ -1,0 +1,29 @@
+profile = "repo-default"
+
+[profiles.repo-default]
+model = "gpt-5.4"
+model_reasoning_effort = "high"
+personality = "pragmatic"
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+[profiles.repo-default.sandbox_workspace_write]
+network_access = false
+
+[profiles.deep-review]
+model = "gpt-5-pro"
+model_reasoning_effort = "high"
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+[profiles.deep-review.sandbox_workspace_write]
+network_access = false
+
+[profiles.fast-ui]
+model = "gpt-5.4"
+model_reasoning_effort = "medium"
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+[profiles.fast-ui.sandbox_workspace_write]
+network_access = false

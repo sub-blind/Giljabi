@@ -1,0 +1,37 @@
+You are implementing StoryRoute AI Milestone M3 Unit C — Event Logging and Admin Metrics.
+
+Read these files in order:
+1. /workspace/AGENTS.md
+2. /input/docs/analytics/13_EVENT_LOG_SCHEMA.md
+3. /input/docs/product/01_PRD_FINAL.md
+4. /input/docs/ui/04_UI_FINAL_SPEC.md
+5. /input/docs/api/openapi.yaml
+6. /input/docs/execution/16_VALIDATION_AND_DOD_FINAL.md
+
+Implement:
+- event log intake path or mock sink aligned with the event schema
+- minimal event producers for key actions:
+  - search submit
+  - place detail view
+  - planner preview
+  - itinerary save
+  - itinerary share intent
+- admin KPI aggregation path or mock-derived aggregation
+- admin widgets that show at least:
+  - KPI cards
+  - top intents
+  - popular regions
+  - planner funnel or analogous metric
+
+Constraints:
+- analytics shape must be explicit, not ad hoc
+- no silent schema drift
+- if persistence is partial, make the limitation visible in code and docs
+
+Write report to:
+- /output/reports/10_m3_event_log_admin.md
+
+Done when:
+- event flow exists from UI/API into analytics representation
+- admin route renders meaningful metrics from that data
+- validation commands pass
