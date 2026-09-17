@@ -27,7 +27,7 @@ def main():
             for value in node:
                 refs(value)
     refs(paths)
-    result = {"openapi": schema["openapi"], "info": {"title": "StoryRoute 강릉 하루 여행 API", "version": "0.1.0",
+    result = {"openapi": schema["openapi"], "info": {"title": "StoryRoute 강원도 하루 여행 API", "version": "0.1.0",
               "description": "현재 React 화면이 사용하는 내부 API. 관광 원형 응답이나 과거 확장 계획과 구분한다."},
               "paths": paths, "components": {"schemas": {name: schema["components"]["schemas"][name] for name in sorted(used)}}}
     (ROOT / "contracts" / "day-trip.openapi.json").write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

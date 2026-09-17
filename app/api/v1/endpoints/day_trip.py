@@ -9,6 +9,7 @@ from app.services.day_trip import (
 from app.services.travel_content import (
     AccessResponse, PhotoRequest, PhotoResponse, RegionsResponse, RelatedResponse, StoryResponse, get_travel_content,
 )
+from app.services.course_route import RouteResponse, get_course_route
 
 router = APIRouter(prefix="/day-trip", tags=["강원도 하루 여행"], responses={
     422: {"description": "입력 조건 또는 장소 ID 검증 실패", "model": ErrorResponse},
@@ -25,7 +26,8 @@ async def get_status(service=Depends(get_day_trip)):
     return {"tourismReady": bool(settings.tour_api_service_key.strip()),
             "aiReady": bool(settings.openai_api_key and settings.openai_model), "testing": service.testing,
             "photosReady": bool(settings.photo_api_service_key), "audioReady": bool(settings.audio_api_service_key),
-            "relatedReady": bool(settings.related_api_service_key), "accessReady": bool(settings.access_api_service_key.strip())}
+            "relatedReady": bool(settings.related_api_service_key), "accessReady": bool(settings.access_api_service_key.strip()),
+            "routeReady": bool(settings.kakao_rest_api_key.strip())}
 
 
 @router.get("/regions", summary="강원도 시군 선택지", response_model=RegionsResponse, response_description="실제 지역코드 목록")
@@ -71,3 +73,8 @@ async def get_place(place_id: str, service=Depends(get_day_trip)):
 @router.post("/course", summary="선택한 장소 재검증과 코스 근거 확인", response_model=CourseResponse, response_description="재검증한 코스와 장소별 근거")
 async def create_course(body: CourseRequest, service=Depends(get_day_trip)):
     return await service.course(body)
+
+
+@router.post("/course/route", summary="재검증한 코스 구간의 자동차 경로·예상 이동", response_model=RouteResponse)
+async def course_route(body: CourseRequest, service=Depends(get_course_route), day_trip=Depends(get_day_trip)):
+    return await service.route(body, day_trip)

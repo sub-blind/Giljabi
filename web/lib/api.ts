@@ -1,4 +1,4 @@
-import type { AccessResult, Connection, Course, Intent, Place, SearchResult, Regions, PhotoResult, StoryResult, RelatedResult } from "./storyroute/types";
+import type { AccessResult, Connection, Course, CourseRoute, Intent, Place, SearchResult, Regions, PhotoResult, StoryResult, RelatedResult } from "./storyroute/types";
 
 const prefix = "/api/v1/day-trip";
 
@@ -33,6 +33,7 @@ export const parseIntent = (query: string, signal?: AbortSignal) => request<{ in
 export const searchPlaces = (intent: Intent, page = 1, signal?: AbortSignal) => request<SearchResult>("/places/search", { intent, page }, signal);
 export const getPlace = (id: string, signal?: AbortSignal) => request<Place>("/places/" + encodeURIComponent(id), undefined, signal);
 export const createCourse = (placeIds: string[], intent: Intent, signal?: AbortSignal) => request<Course>("/course", { placeIds, intent }, signal);
+export const getCourseRoute = (placeIds: string[], intent: Intent, signal?: AbortSignal) => request<CourseRoute>("/course/route", { placeIds, intent }, signal);
 export const searchPhotos = (city: string | null, keyword: string, page: number, signal?: AbortSignal) => request<PhotoResult>("/photos/search", { city, keyword, page }, signal);
 export const getStories = (id: string, signal?: AbortSignal) => request<StoryResult>("/places/" + encodeURIComponent(id) + "/stories", undefined, signal);
 export const getRelated = (id: string, signal?: AbortSignal) => request<RelatedResult>("/places/" + encodeURIComponent(id) + "/related", undefined, signal);

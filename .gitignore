@@ -12,5 +12,6 @@ dist/
 build/
 web/node_modules/
 web/.next/
+web/.next-preview/
 web/.env.local
 *.tsbuildinfo

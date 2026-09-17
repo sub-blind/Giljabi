@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "StoryRoute 강릉 하루 여행 API",
+    "title": "StoryRoute 강원도 하루 여행 API",
     "version": "0.1.0",
     "description": "현재 React 화면이 사용하는 내부 API. 관광 원형 응답이나 과거 확장 계획과 구분한다."
   },
@@ -799,6 +799,87 @@
           }
         }
       }
+    },
+    "/api/v1/day-trip/course/route": {
+      "post": {
+        "tags": [
+          "강원도 하루 여행"
+        ],
+        "summary": "재검증한 코스 구간의 자동차 경로·예상 이동",
+        "operationId": "course_route_api_v1_day_trip_course_route_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CourseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "입력 조건 또는 장소 ID 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "장소 없음 또는 제공 지역 밖",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "요청량 또는 관광 조회량 제한",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "관광 정보 연결·응답 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "관광 연결 준비 중",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1454,6 +1535,169 @@
         ],
         "title": "RelatedResponse"
       },
+      "RouteResponse": {
+        "properties": {
+          "orderedPlaceIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Orderedplaceids"
+          },
+          "mode": {
+            "type": "string",
+            "const": "car",
+            "title": "Mode",
+            "default": "car"
+          },
+          "source": {
+            "type": "string",
+            "const": "kakaomobility",
+            "title": "Source",
+            "default": "kakaomobility"
+          },
+          "segments": {
+            "items": {
+              "$ref": "#/components/schemas/RouteSegment"
+            },
+            "type": "array",
+            "title": "Segments"
+          },
+          "totalDistanceMeters": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Totaldistancemeters"
+          },
+          "totalDurationSeconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Totaldurationseconds"
+          },
+          "notices": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notices"
+          },
+          "retrievedAt": {
+            "type": "string",
+            "title": "Retrievedat"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "orderedPlaceIds",
+          "segments",
+          "totalDistanceMeters",
+          "totalDurationSeconds",
+          "notices",
+          "retrievedAt"
+        ],
+        "title": "RouteResponse"
+      },
+      "RouteSegment": {
+        "properties": {
+          "originId": {
+            "type": "string",
+            "title": "Originid"
+          },
+          "destinationId": {
+            "type": "string",
+            "title": "Destinationid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ready",
+              "unavailable",
+              "missing-coordinates"
+            ],
+            "title": "Status"
+          },
+          "distanceMeters": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1500000.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distancemeters"
+          },
+          "durationSeconds": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 172800.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Durationseconds"
+          },
+          "path": {
+            "items": {
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array",
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "type": "array",
+            "maxItems": 20000,
+            "title": "Path"
+          },
+          "notice": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notice"
+          },
+          "retrievedAt": {
+            "type": "string",
+            "title": "Retrievedat"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "originId",
+          "destinationId",
+          "status",
+          "retrievedAt"
+        ],
+        "title": "RouteSegment"
+      },
       "SearchRequest": {
         "properties": {
           "intent": {
@@ -1545,6 +1789,10 @@
             "type": "boolean",
             "title": "Accessready"
           },
+          "routeReady": {
+            "type": "boolean",
+            "title": "Routeready"
+          },
           "testing": {
             "type": "boolean",
             "title": "Testing"
@@ -1559,6 +1807,7 @@
           "audioReady",
           "relatedReady",
           "accessReady",
+          "routeReady",
           "testing"
         ],
         "title": "StatusResponse",

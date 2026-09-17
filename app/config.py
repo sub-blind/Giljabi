@@ -32,6 +32,7 @@ class Settings(BaseSettings):
 
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000,http://127.0.0.1:5173"
     kakao_rest_api_key: str = ""
+    route_api_daily_limit: int = 100
     kakao_client_secret: str = ""
     kakao_redirect_uri: str = "http://127.0.0.1:8000/api/v1/auth/kakao/callback"
     kakao_logout_redirect_uri: str = "http://127.0.0.1:3000"

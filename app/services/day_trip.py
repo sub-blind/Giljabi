@@ -144,6 +144,7 @@ class StatusResponse(StrictModel):
     audioReady: bool
     relatedReady: bool
     accessReady: bool
+    routeReady: bool
     testing: bool
 
 
