@@ -19,7 +19,7 @@ Tourism 루트의 서버 `.env`에 다음 두 항목을 설정하고 백엔드�
 
 ## 최소 연결 확인
 
-README의 기본 백엔드 주소를 기준으로 PowerShell에서 실행한다. 현재 로컬 미리보기용 백엔드를 직접 확인하려면 포트를 8017로 바꾼다.
+README의 기본 백엔드 주소인 `http://127.0.0.1:8000`을 기준으로 PowerShell에서 실행한다. 다른 포트로 백엔드를 실행한 경우에는 아래 `$storyrouteApi`와 프런트의 `API_BASE_URL`을 실제 주소로 맞춘다.
 
 ```powershell
 $storyrouteApi = 'http://127.0.0.1:8000/api/v1/day-trip'

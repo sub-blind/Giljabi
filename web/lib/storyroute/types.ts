@@ -45,7 +45,18 @@ export const defaultIntent: Intent = {
   keywords: [], preferences: [], unsupportedConditions: [],
 };
 export interface Regions { region: string; name: string; cities: { code: string; name: string }[] }
-export interface Connection { tourismReady: boolean; aiReady: boolean; testing: boolean; photosReady: boolean; audioReady: boolean; relatedReady: boolean; accessReady: boolean }
+export interface Connection { tourismReady: boolean; aiReady: boolean; testing: boolean; photosReady: boolean; audioReady: boolean; relatedReady: boolean; accessReady: boolean; routeReady: boolean }
+export interface CourseRoute {
+  orderedPlaceIds: string[];
+  mode: "car";
+  source: "kakaomobility";
+  segments: { originId: string; destinationId: string; status: "ready" | "unavailable" | "missing-coordinates";
+    distanceMeters: number | null; durationSeconds: number | null; path: [number, number][]; notice: string | null; retrievedAt: string }[];
+  totalDistanceMeters: number | null;
+  totalDurationSeconds: number | null;
+  notices: string[];
+  retrievedAt: string;
+}
 export interface TravelPhoto { id: string; title: string; location: string; city: string | null; imageUrl: string; photographer: string; keywords: string[]; source: string }
 export interface PhotoResult { photos: TravelPhoto[]; page: number; hasMore: boolean; appliedCity: string | null; appliedKeyword: string; notices: string[]; retrievedAt: string }
 export interface StoryResult { placeId: string; stories: { id: string; title: string; script: string; audioUrl: string | null; matchMethod: string; source: string }[]; notices: string[]; retrievedAt: string }
