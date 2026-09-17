@@ -1,9 +1,5 @@
-'use client';
+import StoryRoute from "@/components/storyroute/StoryRoute";
 
-import HomePage from "./home/page";
-
-const Page = ()  => {
-  return <HomePage />;
+export default function Page() {
+  return <StoryRoute />;
 }
-
-export default Page;
