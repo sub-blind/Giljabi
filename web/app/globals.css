@@ -58,7 +58,7 @@
   }
 }
 
-/* 모바일 웹(m.a-bly 스타일): 좁은 앱 컬럼 + 바깥은 primary-foreground / 80% 톤 */
+/* 화면 폭에 따라 배치가 바뀌는 반응형 앱의 기본 영역 */
 @layer components {
   .app-viewport {
     min-height: 100dvh;
@@ -73,10 +73,7 @@
     margin-right: auto;
     min-height: 100dvh;
     width: 100%;
-    max-width: 430px;
+    max-width: none;
     background-color: hsl(var(--background));
-    box-shadow:
-      0 0 0 1px hsl(var(--primary-foreground) / 0.2),
-      0 24px 64px hsl(var(--primary-foreground) / 0.8);
   }
 }
