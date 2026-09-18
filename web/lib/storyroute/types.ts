@@ -58,7 +58,16 @@ export interface CourseRoute {
   retrievedAt: string;
 }
 export interface TravelPhoto { id: string; title: string; location: string; city: string | null; imageUrl: string; photographer: string; keywords: string[]; source: string }
-export interface PhotoResult { photos: TravelPhoto[]; page: number; hasMore: boolean; appliedCity: string | null; appliedKeyword: string; notices: string[]; retrievedAt: string }
+export interface PhotoResult {
+  photos: TravelPhoto[];
+  // 서버가 마지막으로 조회에 성공한 원본 페이지. 추가 조회는 page + 1에서 시작한다.
+  page: number;
+  hasMore: boolean;
+  appliedCity: string | null;
+  appliedKeyword: string;
+  notices: string[];
+  retrievedAt: string;
+}
 export interface StoryResult { placeId: string; stories: { id: string; title: string; script: string; audioUrl: string | null; matchMethod: string; source: string }[]; notices: string[]; retrievedAt: string }
 export interface RelatedResult { placeId: string; candidates: { id: string; name: string; city: string; category: string; rank: number | null; place: Place | null }[]; baseMonth: string; notices: string[]; retrievedAt: string }
 export interface AccessResult { placeId: string; matched: boolean; fields: { key: string; label: string; group: string; value: string }[]; source: "with-tour"; sourceModifiedDate: string | null; notices: string[]; retrievedAt: string }

@@ -19,8 +19,8 @@ OTHER = {**ROW, "contentid": "2002", "contenttypeid": "12", "title": "테스트�
 INTENT = {"region": "gangwon", "city": None, "durationDays": 1, "categories": ["culture", "attraction"],
           "keywords": [], "preferences": [], "unsupportedConditions": []}
 
-def envelope(items):
-    return {"response": {"body": {"items": {"item": items}, "totalCount": len(items)}}}
+def envelope(items, total=None):
+    return {"response": {"body": {"items": {"item": items}, "totalCount": len(items) if total is None else total}}}
 
 async def national(operation, *, extra_params):
     if operation == KorServiceOp.AREA_CODE_LIST:
@@ -72,6 +72,79 @@ def test_photos_require_gangwon_metadata_and_safe_media_without_place_id_join():
         assert result["photos"][0]["imageUrl"].startswith("https://tong.visitkorea.or.kr/")
         assert "latitude" not in result["photos"][0] and "placeId" not in result["photos"][0]
         assert api.get("/api/v1/day-trip/places/photo_7788").status_code == 422
+
+def photo_row(content_id, title="테스트 풍경", location="강원특별자치도 평창군"):
+    return {"galContentId": str(content_id), "galTitle": title, "galPhotographyLocation": location,
+            "galWebImageUrl": f"https://tong.visitkorea.or.kr/test/{content_id}.jpg"}
+
+
+def test_photo_search_fills_different_scenes_and_keeps_rows_after_the_first_twelve():
+    requested = []
+    async def extra(service, operation, params):
+        page = params["pageNo"]
+        requested.append(page)
+        assert params["numOfRows"] == 24
+        items = [photo_row(page * 100 + i, "테스트 같은 풍경" if page == 1 else f"테스트 풍경 {i % 6}")
+                 for i in range(24)]
+        return envelope(items, total=200)
+    with client(extra) as api:
+        first = api.post("/api/v1/day-trip/photos/search", json={"city": "평창군"}).json()
+        assert requested == [1, 2]
+        assert len(first["photos"]) == 48
+        assert {photo["id"] for photo in first["photos"]} == {f"photo_{page * 100 + i}" for page in [1, 2] for i in range(24)}
+        assert first["page"] == 2 and first["hasMore"] is True
+        following = api.post("/api/v1/day-trip/photos/search", json={"city": "평창군", "page": first["page"] + 1}).json()
+        assert requested == [1, 2, 3]
+        assert following["page"] == 3
+        assert not {photo["id"] for photo in first["photos"]} & {photo["id"] for photo in following["photos"]}
+
+
+@pytest.mark.parametrize("start, expected_pages", [(1, [1, 2, 3]), (4, [4, 5])])
+def test_sparse_photo_search_caps_each_batch_and_the_overall_search(start, expected_pages):
+    requested = []
+    async def extra(service, operation, params):
+        page = params["pageNo"]
+        requested.append(page)
+        return envelope([photo_row(page * 100 + i) for i in range(24)], total=200)
+    with client(extra) as api:
+        result = api.post("/api/v1/day-trip/photos/search", json={"page": start}).json()
+        assert requested == expected_pages
+        assert len(result["photos"]) == len(expected_pages) * 24
+        assert result["page"] == expected_pages[-1]
+        assert result["hasMore"] is (expected_pages[-1] < 5)
+
+
+def test_photo_search_checks_selected_city_before_counting_scenes_and_stops_at_the_end():
+    requested = []
+    async def extra(service, operation, params):
+        page = params["pageNo"]
+        requested.append(page)
+        if page == 1:
+            return envelope([photo_row(i, f"다른 지역 {i}", "강원특별자치도 춘천시") for i in range(24)], total=25)
+        return envelope([photo_row(100)], total=25)
+    with client(extra) as api:
+        result = api.post("/api/v1/day-trip/photos/search", json={"city": "평창군"}).json()
+        assert requested == [1, 2]
+        assert [photo["id"] for photo in result["photos"]] == ["photo_100"]
+        assert result["page"] == 2 and result["hasMore"] is False
+
+
+def test_photo_supplement_failure_keeps_loaded_photos_and_retries_the_failed_page():
+    requested = []
+    async def extra(service, operation, params):
+        page = params["pageNo"]
+        requested.append(page)
+        if page > 1:
+            raise TourApiError("검증용 추가 조회 실패", status_code=502)
+        return envelope([photo_row(i) for i in range(24)], total=200)
+    with client(extra) as api:
+        result = api.post("/api/v1/day-trip/photos/search", json={}).json()
+        assert requested == [1, 2] and len(result["photos"]) == 24
+        assert result["page"] == 1 and result["hasMore"] is True
+        assert any("추가 풍경" in notice for notice in result["notices"])
+        retry = api.post("/api/v1/day-trip/photos/search", json={"page": result["page"] + 1})
+        assert retry.status_code == 502 and requested == [1, 2, 2]
+
 
 def test_stories_match_name_language_and_nearby_position_and_sanitize_script():
     story = {"stid": "9", "stlid": "10", "title": ROW["title"], "audioTitle": "가상 이야기", "langCode": "ko",
