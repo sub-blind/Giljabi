@@ -19,6 +19,12 @@ from app.tour_api import KorServiceOp
 from app.tour_api.client import TourApiError, get_service_json
 
 
+PHOTO_PAGE_SIZE = 24
+PHOTO_MAX_PAGE = 5
+PHOTO_BATCH_PAGES = 3
+PHOTO_GROUP_TARGET = 6
+
+
 class RegionsResponse(StrictModel):
     region: str
     name: str
@@ -28,7 +34,8 @@ class RegionsResponse(StrictModel):
 class PhotoRequest(StrictModel):
     city: str | None = None
     keyword: str = Field(default="", max_length=40)
-    page: int = Field(default=1, ge=1, le=5)
+    page: int = Field(default=1, ge=1, le=PHOTO_MAX_PAGE,
+                      description="조회할 사진 API의 시작 페이지")
 
     @field_validator("city")
     @classmethod
@@ -49,7 +56,7 @@ class TravelPhoto(StrictModel):
 
 class PhotoResponse(StrictModel):
     photos: list[TravelPhoto]
-    page: int
+    page: int = Field(description="마지막으로 조회에 성공한 사진 API 페이지. 추가 조회는 이 값에 1을 더해 요청한다.")
     hasMore: bool
     appliedCity: str | None
     appliedKeyword: str
@@ -160,25 +167,44 @@ class TravelContentService:
 
     async def photos(self, query: PhotoRequest):
         keyword = query.keyword or (query.city[:-1] if query.city else "강원")
-        items, total = await self.call("photo", "gallerySearchList1", keyword=keyword, pageNo=query.page, arrange="A")
         photos = {}
-        for row in items:
-            location = clean(row.get("galPhotographyLocation"), 200)
-            image = resource_url(row.get("galWebImageUrl"))
-            city = next((name for name in CITY_NAMES if name in location), None)
-            content_id = str(row.get("galContentId", ""))
-            if not re.match(r"^강원(?:특별자치도|도)?\s", location) or not image or not re.fullmatch(r"\d{1,20}", content_id):
-                continue
-            if query.city and city != query.city:
-                continue
-            photos[content_id] = {"id": "photo_" + content_id, "title": clean(row.get("galTitle"), 120) or "강원도 여행 사진",
-                "location": location, "city": city, "imageUrl": image,
-                "photographer": clean(row.get("galPhotographer"), 60) or "한국관광공사",
-                "keywords": [clean(word, 30) for word in re.split(r"[,，]", clean(row.get("galSearchKeyword"), 300)) if word.strip()][:6],
-                "source": "photo-gallery"}
-        return {"photos": list(photos.values())[:12], "page": query.page,
-                "hasMore": query.page < 5 and total > query.page * 24, "appliedCity": query.city,
-                "appliedKeyword": keyword, "notices": ["촬영지 정보에서 강원도를 확인한 사진이에요. 사진 위치와 관광 장소는 검색 후 따로 확인해요."],
+        groups = set()
+        notices = ["촬영지 정보에서 강원도를 확인한 사진이에요. 사진 위치와 관광 장소는 검색 후 따로 확인해요."]
+        page, has_more = query.page, False
+        # 같은 촬영지의 사진이 한 페이지를 채워도 서로 다른 풍경을 바로 둘러볼 수 있게 보충한다.
+        # 한 요청에서 최대 세 페이지, 한 검색에서 최대 다섯 페이지까지만 조회한다.
+        for next_page in range(query.page, min(query.page + PHOTO_BATCH_PAGES - 1, PHOTO_MAX_PAGE) + 1):
+            try:
+                items, total = await self.call("photo", "gallerySearchList1", keyword=keyword,
+                                              pageNo=next_page, numOfRows=PHOTO_PAGE_SIZE, arrange="A")
+            except TourApiError:
+                if next_page == query.page:
+                    raise
+                notices.append("추가 풍경을 가져오지 못했어요. 먼저 확인한 결과는 유지했어요. 잠시 후 더 찾아보세요.")
+                break
+            page = next_page
+            has_more = page < PHOTO_MAX_PAGE and total > page * PHOTO_PAGE_SIZE
+            for row in items:
+                location = clean(row.get("galPhotographyLocation"), 200)
+                image = resource_url(row.get("galWebImageUrl"))
+                city = next((name for name in CITY_NAMES if name in location), None)
+                content_id = str(row.get("galContentId", ""))
+                if not re.match(r"^강원(?:특별자치도|도)?\s", location) or not image or not re.fullmatch(r"\d{1,20}", content_id):
+                    continue
+                if query.city and city != query.city:
+                    continue
+                title = clean(row.get("galTitle"), 120) or "강원도 여행 사진"
+                photos[content_id] = {"id": "photo_" + content_id, "title": title,
+                    "location": location, "city": city, "imageUrl": image,
+                    "photographer": clean(row.get("galPhotographer"), 60) or "한국관광공사",
+                    "keywords": [clean(word, 30) for word in re.split(r"[,，]", clean(row.get("galSearchKeyword"), 300)) if word.strip()][:6],
+                    "source": "photo-gallery"}
+                groups.add((title, location, city))
+            if len(groups) >= PHOTO_GROUP_TARGET or not has_more:
+                break
+        return {"photos": list(photos.values()), "page": page,
+                "hasMore": has_more, "appliedCity": query.city,
+                "appliedKeyword": keyword, "notices": notices,
                 "retrievedAt": timestamp()}
 
     async def stories(self, place_id):

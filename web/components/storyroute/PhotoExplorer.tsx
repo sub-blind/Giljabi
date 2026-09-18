@@ -53,7 +53,8 @@ function PhotoCollection({ photos, busy, onExplore }: {
   return <>
     {!!failedUrls.size && <p className={styles.photoNotice} role="status">불러오지 못한 사진 {failedUrls.size}장은 제외했어요.</p>}
     {!!groups.size && <>
-      <p className={styles.small}>같은 제목과 촬영지의 사진을 한 카드로 묶었어요. 화살표로 다른 사진을 볼 수 있어요.</p>
+      <p className={styles.small} role="status">촬영지 {groups.size}곳 · 사진 {[...groups.values()].reduce((count, group) => count + group.length, 0)}장</p>
+      <p className={styles.small}>마음에 드는 풍경을 골라보세요. 카드의 화살표로 같은 촬영지의 다른 사진을 볼 수 있어요.</p>
       <div className={styles.photoGrid}>{[...groups].map(([key, group]) =>
         <PhotoGallery key={key} photos={group} busy={busy} onExplore={onExplore} onFailed={exclude} />)}</div>
     </>}
@@ -105,7 +106,7 @@ export function PhotoExplorer({ cities, ready, busy: tripBusy, onExplore }: {
       <p className={styles.small}>조회 조건: {result.appliedCity ?? "강원도 전체"} · {result.appliedKeyword} · {new Date(result.retrievedAt).toLocaleString("ko-KR")}</p>
       {result.notices.map(item => <p key={item} className={styles.small}>{item}</p>)}
       <PhotoCollection key={resultVersion} photos={result.photos} busy={tripBusy} onExplore={onExplore} />
-      {result.hasMore && <button className={`${styles.secondary} ${styles.full}`} type="button" disabled={busy} onClick={() => void load(true)}>사진 더 보기</button>}
+      {result.hasMore && <button className={`${styles.secondary} ${styles.full}`} type="button" disabled={busy} onClick={() => void load(true)}>{busy ? "풍경 더 찾는 중…" : "다른 풍경 더 보기"}</button>}
     </>}
   </section>;
 }

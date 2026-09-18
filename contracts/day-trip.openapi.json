@@ -1249,6 +1249,7 @@
             "maximum": 5.0,
             "minimum": 1.0,
             "title": "Page",
+            "description": "조회할 사진 API의 시작 페이지",
             "default": 1
           }
         },
@@ -1267,7 +1268,8 @@
           },
           "page": {
             "type": "integer",
-            "title": "Page"
+            "title": "Page",
+            "description": "마지막으로 조회에 성공한 사진 API 페이지. 추가 조회는 이 값에 1을 더해 요청한다."
           },
           "hasMore": {
             "type": "boolean",
