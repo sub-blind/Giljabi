@@ -194,6 +194,17 @@ docker compose ps
 docker compose stop
 ```
 
+SQLAlchemy 모델과 Alembic 초기 변경을 구현하고 현재 로컬 DB에 사용자·세션·코스·장소·기록 테이블을 생성했다. 새 DB에는 아래 명령으로 적용한다. 현재 화면의 로그인·코스 저장은 아직 DB에 연결하지 않았다.
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -X utf8 -m alembic upgrade head
+.\.venv\Scripts\python.exe -X utf8 -m alembic current
+.\.venv\Scripts\python.exe -X utf8 tools/check_db_schema.py
+```
+
+필드·관계·제약조건과 pgAdmin 확인 방법은 [테이블 구조](docs/DATABASE_SCHEMA.md)를 따른다. 확인용 데이터는 롤백하며 `alembic_version`은 별도 변경 이력 테이블이다.
+
 새 개발 환경은 `.env.example`의 로컬 DB 설정과 같은 비밀번호를 `DATABASE_URL`에 반영한 뒤 실행한다. 이전에 초기화한 Windows PostgreSQL은 중지 상태로 유지한다. 두 방식은 같은 포트를 사용하며 서로 다른 저장 공간을 사용하므로 동시에 실행하거나 같은 DB 데이터로 취급하지 않는다. 상세 실행·중지 방법과 대체 실행 방법은 [PostgreSQL 연결 안내](docs/POSTGRESQL_PLAN.md)를 따른다.
 
 ## 프런트 실행
@@ -259,6 +270,8 @@ npm run dev
 | `app/database.py` | PostgreSQL 연결 풀·트랜잭션·연결 확인·오류 숨김 |
 | `compose.yaml` | 개발용 PostgreSQL 17·로컬 포트·영속 볼륨·상태 확인 |
 | `tools/check_local_db.py` | 실제 DB 연결·임시 한국어 데이터 저장·수정·조회 확인 |
+| `app/models.py`·`migrations`·`alembic.ini` | 계정·코스·기록 모델과 DB 변경 이력 |
+| `tools/check_db_schema.py` | 실제 DB의 제약조건·순서 변경·기록 유지·삭제 검증, 확인용 데이터 롤백 |
 | `tools/local_postgres.ps1` | 현재 PC의 프로젝트 전용 PostgreSQL 실행·중지·상태 |
 | `tests/test_database.py` | DB 미설정·잘못된 설정·연결 실패·정상 상태·종료 시 정리 |
 | `tests/test_day_trip.py` | 외부 키가 필요 없는 흐름·실패 검증 |
@@ -300,6 +313,14 @@ npm run build
 개발 서버와 운영 미리보기를 동시에 사용할 때는 빌드·운영 실행 양쪽에 `STORYROUTE_DIST_DIR=.next-preview`를 설정해 산출물 폴더를 분리한다. 일반 실행에는 필요하지 않다. 두 실행에서 서로 다른 값을 쓰면 해당 운영 빌드를 찾지 못한다.
 
 현재 조회량 제한과 지역코드는 메모리에 있다. 백엔드는 한 워커를 기준으로 운영하고, 여러 인스턴스 운영 때는 공유 제한 저장소가 필요하다. 관광 원천 데이터의 대량 영속 저장과 색인은 별도 이용 안내를 확인한 후 확장한다.
+
+## 카카오 회원·세션 저장
+
+카카오 로그인 콜백에서 `users`를 생성하거나 기존 회원을 갱신하고 `auth_sessions`에 로그인 유지용 토큰 해시를 저장한다. 사용자·세션 저장은 한 트랜잭션으로 처리하며 카카오 원본 토큰과 이메일은 DB에 저장하지 않는다. 동일 카카오 계정은 같은 내부 UUID를 사용한다.
+
+접근 토큰도 DB 세션의 만료·폐기 여부를 확인한다. 토큰 갱신은 행 잠금으로 같은 세션의 중복 갱신을 막고, 기존 세션 폐기와 새 세션 생성을 함께 처리한다. 로그아웃 시 해당 세션을 폐기한다. 이전 메모리 방식으로 발급한 쿠키는 다시 로그인해야 한다. 로그인 화면·회원별 코스 저장은 다음 단계이며 현재 코스와 기록은 브라우저에 저장한다.
+
+설정·API·로컬 검증 실행은 [카카오 인증 API 설명](docs/AUTH_API_SPEC.md)을 따른다.
 
 ## 프로젝트 규칙
 

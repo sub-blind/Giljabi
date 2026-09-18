@@ -5,3 +5,4 @@ pydantic-settings>=2.6.0
 python-dotenv>=1.0.0
 SQLAlchemy>=2.0.40,<2.1
 psycopg[binary]>=3.2,<4
+alembic>=1.16,<2
