@@ -12,6 +12,7 @@
 - [최소 사용자 시나리오](docs/MVP_USER_SCENARIO.md)
 - [검증 기록](docs/VALIDATION.md)
 - [실제 AI 연결·평가 안내](docs/AI_SETUP_AND_CHECK.md)
+- [PostgreSQL 연결·도입 계획](docs/POSTGRESQL_PLAN.md)
 - [하루 여행 API 계약](contracts/day-trip.openapi.json)
 
 작업 문서와 화면 안내는 한국어를 기준으로 한다. `storyroute_omx_dev_ready_pack`은 이전 기획의 참고 자료이며 현재 개발 범위는 위 문서를 따른다.
@@ -28,6 +29,7 @@
 | 지도 | Leaflet·OpenStreetMap |
 | 자동차 이동 | 카카오모빌리티 예상 시간·거리·도로 경로 |
 | 개인 저장 | 이 브라우저의 localStorage에 코스·직접 방문 체크·메모 저장 |
+| 서버 DB | PostgreSQL·SQLAlchemy·Psycopg, 로컬 연결·읽기·쓰기 확인, 계정 저장 구현 예정 |
 
 기존 저장소의 Next.js 구조에서 React 프런트를 구현한다. 개발·운영 모두 Next.js의 경로 연결로 `/api/v1/day-trip` 요청을 FastAPI에 전달한다.
 
@@ -177,6 +179,34 @@ if (-not (Test-Path -LiteralPath '.env')) {
 - 상태 확인: <http://127.0.0.1:8000/healthz>
 - API 문서: <http://127.0.0.1:8000/docs>
 
+## 로컬 PostgreSQL 연결
+
+현재 PC에서는 Docker Compose로 PostgreSQL 17을 프로젝트 전용 `127.0.0.1:55432`에서 실행한다. Docker Desktop의 Containers에서 `storyroute-local-db` 그룹과 `storyroute-local-db-postgres-1` 컨테이너를 확인할 수 있다. 서버 `.env`의 `DATABASE_URL`을 사용하며 현재 코스·방문 기록은 브라우저 저장이다. 계정 저장 API는 아직 구현하지 않았다.
+
+프로젝트 루트에서 DB 실행과 실제 연결·임시 데이터 읽기·쓰기를 확인한다.
+
+```powershell
+docker compose up -d --wait
+.\.venv\Scripts\python.exe -X utf8 tools/check_local_db.py
+docker compose ps
+
+# 개발을 마치고 DB 중지: 저장 볼륨은 유지
+docker compose stop
+```
+
+SQLAlchemy 모델과 Alembic 초기 변경을 구현하고 현재 로컬 DB에 사용자·세션·코스·장소·기록 테이블을 생성했다. 새 DB에는 아래 명령으로 적용한다. 현재 화면의 로그인·코스 저장은 아직 DB에 연결하지 않았다.
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -X utf8 -m alembic upgrade head
+.\.venv\Scripts\python.exe -X utf8 -m alembic current
+.\.venv\Scripts\python.exe -X utf8 tools/check_db_schema.py
+```
+
+필드·관계·제약조건과 pgAdmin 확인 방법은 [테이블 구조](docs/DATABASE_SCHEMA.md)를 따른다. 확인용 데이터는 롤백하며 `alembic_version`은 별도 변경 이력 테이블이다.
+
+새 개발 환경은 `.env.example`의 로컬 DB 설정과 같은 비밀번호를 `DATABASE_URL`에 반영한 뒤 실행한다. 이전에 초기화한 Windows PostgreSQL은 중지 상태로 유지한다. 두 방식은 같은 포트를 사용하며 서로 다른 저장 공간을 사용하므로 동시에 실행하거나 같은 DB 데이터로 취급하지 않는다. 상세 실행·중지 방법과 대체 실행 방법은 [PostgreSQL 연결 안내](docs/POSTGRESQL_PLAN.md)를 따른다.
+
 ## 프런트 실행
 
 다른 터미널에서 프로젝트 루트를 기준으로 실행한다.
@@ -204,24 +234,25 @@ npm run dev
 | 원본 음성 재생 | 파일 응답·컨트롤 확인 | 재생 완료는 미확인, 원문·원본 파일 링크 제공 |
 | 자동차 이동 | 실제 구간 조회·도로 표시 확인 | 조회 시점 예상값, 부분 실패 처리, 순서 변경 후 재조회 |
 | 여행 시작·직접 기록 | 구현·로컬 저장 및 복원 확인 | 다음 미방문 장소, 방문 체크, 500자 메모, 같은 장소 구성의 기록 유지 |
-| 문장 해석·AI 근거 선택 | 코드·모의 응답 검증, 실제 연결 미확인 | 현재 로컬 상태는 `aiReady: false`, 직접 선택·확인된 사실로 진행 |
-| 로그인·계정 저장·공유 | 현재 화면에 연결되지 않음 | 브라우저별 저장만 제공, 서버 DB·기기 간 동기화 없음 |
+| 문장 해석·AI 근거 선택 | 실제 Responses API 연결·고정 예시 평가 확인 | 조건 해석 10개·춘천 실제 후보 18개·두 장소 소개 원문 대조, 브라우저·공개 운영 AI 흐름은 별도 확인 |
+| 로그인·계정 저장·공유 | 현재 화면에 연결되지 않음 | 브라우저별 저장만 제공, 계정 DB 저장·기기 간 동기화 없음 |
+| PostgreSQL 기반 연결 | 실제 로컬 연결·읽기·쓰기 확인 | DB 연결 확인 API, 연결 수·시간 제한·오류 숨김, 계정 데이터 저장은 구현 전 |
 | 공개 운영 주소·제출 자료 | 준비 단계 | 로컬 동작과 별도로 외부 접속·제출 확인 필요 |
 
 후보 카드 표시·선택·순서 변경마다 LLM을 호출하지 않는다. 관광 연결이 없으면 실제 장소를 제공한 것처럼 표시하지 않는다. AI가 없거나 실패해도 직접 조건 선택과 실제 관광 검색을 사용할 수 있다.
 
 ## 사용자 관점의 보완 순서
 
-아래 항목은 다음 작업 제안이며 구현 완료를 뜻하지 않는다. 오늘은 상세 자료의 상태와 저장 안내부터 보완하고, 실제 AI 연결·공개 주소 준비는 [남은 일정](docs/PROJECT_PLAN.md)에 맞춰 진행한다.
+아래 항목은 다음 작업 제안이며 구현 완료를 뜻하지 않는다. 실제 AI 연결·고정 예시 평가와 원문 근거는 확인했다. 다음은 공개 주소에서 기본 흐름을 확인하는 작업이며, 상세 자료의 상태와 저장 안내도 [남은 일정](docs/PROJECT_PLAN.md)에 맞춰 보완한다.
 
 | 우선순위 | 현재 사용자가 겪을 수 있는 문제 | 보완할 내용 | 완료 확인 |
 |---|---|---|---|
 | 1 | ‘이야기 듣기’를 눌렀는데 자료가 없어 기능 오류처럼 느껴짐 | 조회 전에는 ‘이야기 확인’처럼 표현하고, 조회 후 자료 수·없음·실패를 구분. 같은 상세에서 탭을 돌아와도 확인한 결과 유지 | 자료 있는 장소·없는 장소·조회 실패에서 표시가 서로 다르고, 탭 복귀만으로 API를 재호출하지 않음 |
 | 2 | 새 코스 저장이 이전 코스를 교체한다는 사실을 알기 어려움. 메모는 입력만 하면 저장됐다고 생각할 수 있음 | 최근 코스 1개 저장이라는 안내·기존 코스 교체 전 확인·저장 시각, 메모의 미저장 표시 추가 | 서로 다른 두 코스로 교체 여부 확인, 메모 입력·저장·재접속 결과 확인 |
 | 3 | 식당을 골라도 전화·이용시간 등 방문 판단에 필요한 정보가 부족함 | 기존 국문 서비스의 공통·소개정보에서 제공 항목을 확인해 상세에 연결. 소개정보는 `detailIntro2`를 활용할 수 있음 | 실제 음식점·명소에서 제공된 항목만 표시하고, 누락을 ‘현재 영업 중’이나 ‘이용 불가’로 추정하지 않음 |
-| 4 | 문장 검색과 AI 설명의 실제 품질을 아직 판단하기 어려움 | 실제 계정 설정 후 예시 10~15개로 조건 해석·수정 반영·원문 근거·실패 대응 평가 | 모의 결과와 실제 결과를 나누어 기록하고, AI 실패 중에도 수동 검색 완주 |
+| 4 | 고정 예시 외의 문장·조건 편집과 외부 주소의 AI 흐름은 아직 미확인 | 부정문·모호한 요청 추가 평가, 화면에서 조건 수정 후 실제 검색, 공개 운영에서 실패 대응 확인 | 고정 예시 10개 결과와 추가 검증을 구분하고 AI 실패 중에도 수동 검색 완주 |
 
-다음 단계의 구조 개선은 필요가 확인된 범위부터 한다. 먼저 상세 콘텐츠 결과를 상위 상세 패널에서 관리해 조회 상태를 유지하고, 검색 조건 편집·요청 진행·코스 편집의 상태 변경을 명확하게 분리한다. 여러 코스·계정 저장을 도입할 때는 별도 저장 모델과 DB를 설계한다. 현재 단일 코스 저장을 계정별 여행 목록으로 표현하지 않는다.
+다음 단계의 구조 개선은 필요가 확인된 범위부터 한다. 먼저 상세 콘텐츠 결과를 상위 상세 패널에서 관리해 조회 상태를 유지하고, 검색 조건 편집·요청 진행·코스 편집의 상태 변경을 명확하게 분리한다. 서버 저장에는 PostgreSQL을 사용하며, 무료 운영과 계정·코스·기록의 관계는 [PostgreSQL 도입 계획](docs/POSTGRESQL_PLAN.md)을 따른다. 현재 단일 코스 저장을 계정별 여행 목록으로 표현하지 않는다.
 
 ## 코드 위치
 
@@ -236,6 +267,13 @@ npm run dev
 | `app/tour_api/related_region_codes.json` | 공식 코드표의 연관 서비스 강원 시군 코드 |
 | `app/api/v1/endpoints/day_trip.py` | 하루 여행 API |
 | `app/tour_api/client.py` | 서버에서 관광 API 호출·조회량 제한 |
+| `app/database.py` | PostgreSQL 연결 풀·트랜잭션·연결 확인·오류 숨김 |
+| `compose.yaml` | 개발용 PostgreSQL 17·로컬 포트·영속 볼륨·상태 확인 |
+| `tools/check_local_db.py` | 실제 DB 연결·임시 한국어 데이터 저장·수정·조회 확인 |
+| `app/models.py`·`migrations`·`alembic.ini` | 계정·코스·기록 모델과 DB 변경 이력 |
+| `tools/check_db_schema.py` | 실제 DB의 제약조건·순서 변경·기록 유지·삭제 검증, 확인용 데이터 롤백 |
+| `tools/local_postgres.ps1` | 현재 PC의 프로젝트 전용 PostgreSQL 실행·중지·상태 |
+| `tests/test_database.py` | DB 미설정·잘못된 설정·연결 실패·정상 상태·종료 시 정리 |
 | `tests/test_day_trip.py` | 외부 키가 필요 없는 흐름·실패 검증 |
 | `tests/test_travel_content.py` | 강원도 범위·추가 콘텐츠·장소 연결 검증 |
 | `tests/test_course_route.py` | 자동차 응답·좌표 누락·부분 실패·캐시·조회량 제한 검증 |
@@ -252,6 +290,7 @@ npm run dev
 .\.venv\Scripts\python.exe -m pytest -q
 .\.venv\Scripts\python.exe tools/check_live_tourism.py
 .\.venv\Scripts\python.exe tools/check_extra_tourism.py
+.\.venv\Scripts\python.exe -X utf8 tools/check_live_ai.py
 ```
 
 `web` 폴더:
@@ -263,7 +302,7 @@ npm test
 npm run build
 ```
 
-기능 테스트는 모의 관광·AI 응답을 사용한다. 실제 연결 확인 명령은 설정한 관광 API로 최소 조회를 실행하며 인증키·인증 URL을 출력하지 않는다. 최근 결과와 미확인 항목은 [검증 기록](docs/VALIDATION.md)에 구분해 기록한다.
+기능 테스트는 모의 관광·AI 응답을 사용하며 서버의 실제 AI 설정을 가져오지 않는다. 관광 연결 확인 명령은 실제 API 호출량을 사용한다. `check_live_ai.py`는 유료 AI 요청을 최대 10회 보내는 별도 예시 평가이며 인증키·인증 URL·오류 원문을 출력하지 않는다. 최근 결과와 미확인 항목은 [검증 기록](docs/VALIDATION.md)에 구분해 기록한다.
 
 ## 운영
 
@@ -274,6 +313,14 @@ npm run build
 개발 서버와 운영 미리보기를 동시에 사용할 때는 빌드·운영 실행 양쪽에 `STORYROUTE_DIST_DIR=.next-preview`를 설정해 산출물 폴더를 분리한다. 일반 실행에는 필요하지 않다. 두 실행에서 서로 다른 값을 쓰면 해당 운영 빌드를 찾지 못한다.
 
 현재 조회량 제한과 지역코드는 메모리에 있다. 백엔드는 한 워커를 기준으로 운영하고, 여러 인스턴스 운영 때는 공유 제한 저장소가 필요하다. 관광 원천 데이터의 대량 영속 저장과 색인은 별도 이용 안내를 확인한 후 확장한다.
+
+## 카카오 회원·세션 저장
+
+카카오 로그인 콜백에서 `users`를 생성하거나 기존 회원을 갱신하고 `auth_sessions`에 로그인 유지용 토큰 해시를 저장한다. 사용자·세션 저장은 한 트랜잭션으로 처리하며 카카오 원본 토큰과 이메일은 DB에 저장하지 않는다. 동일 카카오 계정은 같은 내부 UUID를 사용한다.
+
+접근 토큰도 DB 세션의 만료·폐기 여부를 확인한다. 토큰 갱신은 행 잠금으로 같은 세션의 중복 갱신을 막고, 기존 세션 폐기와 새 세션 생성을 함께 처리한다. 로그아웃 시 해당 세션을 폐기한다. 이전 메모리 방식으로 발급한 쿠키는 다시 로그인해야 한다. 로그인 화면·회원별 코스 저장은 다음 단계이며 현재 코스와 기록은 브라우저에 저장한다.
+
+설정·API·로컬 검증 실행은 [카카오 인증 API 설명](docs/AUTH_API_SPEC.md)을 따른다.
 
 ## 프로젝트 규칙
 

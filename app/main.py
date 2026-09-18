@@ -10,12 +10,16 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import api_v1_router
 from app.config import get_settings
+from app.database import Database, DatabaseError, DatabaseNotConfigured
 from app.tour_api.client import TourApiError
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
-    yield
+async def lifespan(app: FastAPI):
+    try:
+        yield
+    finally:
+        app.state.database.dispose()
 
 
 def create_app() -> FastAPI:
@@ -25,6 +29,7 @@ def create_app() -> FastAPI:
         version="0.1.0",
         lifespan=lifespan,
     )
+    app.state.database = Database(settings)
 
     origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
     app.add_middleware(
@@ -56,7 +61,16 @@ def create_app() -> FastAPI:
             response.headers["Cache-Control"] = "no-store"
             response.headers["X-Content-Type-Options"] = "nosniff"
             return response
-        return await call_next(request)
+        response = await call_next(request)
+        if request.url.path.startswith("/api/v1/auth/"):
+            response.headers["Cache-Control"] = "no-store"
+        return response
+
+    @app.exception_handler(DatabaseError)
+    async def database_error(request, error):
+        missing = isinstance(error, DatabaseNotConfigured)
+        return JSONResponse({"error": {"code": "DATABASE_NOT_CONFIGURED" if missing else "DATABASE_UNAVAILABLE",
+                                       "message": str(error), "retryable": not missing}}, status_code=503)
 
     @app.exception_handler(TourApiError)
     async def tourism_error(request, error):

@@ -1,20 +1,27 @@
 from __future__ import annotations
 
 from typing import Any
+from datetime import datetime, timezone
+from uuid import UUID, uuid4
+import hmac
 from urllib.parse import urlencode
 
 import httpx
-from fastapi import APIRouter, Cookie, HTTPException, Query, Response
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, Response
 from fastapi.responses import RedirectResponse
+from starlette.concurrency import run_in_threadpool
+from sqlalchemy import select, update, func
+from sqlalchemy.dialects.postgresql import insert
+
+from app.database import Database, DatabaseError, get_database
+from app.models import User, AuthSession
 
 from app.auth_tokens import (
-    RefreshSession,
     create_jwt,
     decode_jwt,
     future_ts,
     new_jti,
     new_state_token,
-    refresh_session_store,
     token_digest,
     utc_now,
 )
@@ -34,7 +41,7 @@ STATE_COOKIE_NAME = "storyroute_oauth_state"
 def _require_auth_secret() -> str:
     secret = get_settings().auth_jwt_secret
     if len(secret) < 32:
-        raise HTTPException(status_code=503, detail="Auth JWT secret is not configured securely.")
+        raise HTTPException(status_code=503, detail="로그인 서명 설정을 확인해주세요.")
     return secret
 
 
@@ -48,10 +55,10 @@ def _cookie_settings() -> dict[str, Any]:
     }
 
 
-def _build_kakao_login_url(state: str) -> str:
+def _build_kakao_login_url(state: str, *, request_nickname: bool = False) -> str:
     settings = get_settings()
     if not settings.kakao_rest_api_key:
-        raise HTTPException(status_code=503, detail="Kakao login is not configured.")
+        raise HTTPException(status_code=503, detail="카카오 로그인 설정이 없습니다.")
 
     params = {
         "response_type": "code",
@@ -59,46 +66,45 @@ def _build_kakao_login_url(state: str) -> str:
         "redirect_uri": settings.kakao_redirect_uri,
         "state": state,
     }
+    if request_nickname:
+        params["scope"] = "profile_nickname"
     return f"{KAKAO_AUTHORIZE_URL}?{urlencode(params)}"
 
 
-def _make_access_token(user: dict[str, Any]) -> str:
-    settings = get_settings()
-    payload = {
-        "sub": user["userId"],
-        "provider": user["provider"],
-        "nickname": user.get("nickname"),
-        "email": user.get("email"),
-        "type": "access",
-        "iat": utc_now(),
-        "exp": future_ts(settings.auth_access_token_ttl_seconds),
-    }
-    return create_jwt(payload, _require_auth_secret())
-
-
-def _make_refresh_token(user: dict[str, Any]) -> tuple[str, RefreshSession]:
+def _make_tokens(user: dict[str, Any]) -> tuple[str, str, dict[str, Any]]:
     settings = get_settings()
     jti = new_jti()
+    issued_at = utc_now()
     expires_at = future_ts(settings.auth_refresh_token_ttl_seconds)
-    payload = {
-        "sub": user["userId"],
-        "provider": user["provider"],
-        "type": "refresh",
-        "jti": jti,
-        "iat": utc_now(),
-        "exp": expires_at,
-    }
-    token = create_jwt(payload, _require_auth_secret())
-    session = RefreshSession(
-        jti=jti,
-        user_id=user["userId"],
-        token_hash=token_digest(token),
-        expires_at=expires_at,
-        provider=user["provider"],
-        nickname=user.get("nickname"),
-        email=user.get("email"),
-    )
-    return token, session
+    common = {"sub": user["userId"], "provider": "kakao", "iat": issued_at, "sid": jti}
+    secret = _require_auth_secret()
+    access = create_jwt({**common, "type": "access", "exp": future_ts(settings.auth_access_token_ttl_seconds)}, secret)
+    refresh = create_jwt({**common, "type": "refresh", "jti": jti, "exp": expires_at}, secret)
+    session = {"id": jti, "user_id": UUID(user["userId"]), "token_hash": token_digest(refresh),
+               "expires_at": datetime.fromtimestamp(expires_at, timezone.utc)}
+    return access, refresh, session
+
+
+def _user_data(row) -> dict[str, Any]:
+    return {"userId": str(row["id"]), "provider": row["provider"], "nickname": row["nickname"]}
+
+
+def _persist_login(database: Database, external_user: dict[str, Any]) -> tuple[str, str]:
+    # 사용자 중복 방지와 세션 생성을 함께 커밋한다. 카카오 원본 토큰은 보관하지 않는다.
+    with database.begin() as connection:
+        nickname = external_user.get("nickname")
+        if nickname is not None:
+            nickname = str(nickname)[:100]
+        statement = insert(User).values(id=uuid4(), provider="kakao",
+                                        provider_user_id=str(external_user["kakaoId"]), nickname=nickname)
+        statement = statement.on_conflict_do_update(
+            constraint="uq_users_provider_identity",
+            set_={"nickname": statement.excluded.nickname, "updated_at": func.now()},
+        ).returning(User.id, User.provider, User.nickname)
+        user = _user_data(connection.execute(statement).mappings().one())
+        access, refresh, session = _make_tokens(user)
+        connection.execute(insert(AuthSession).values(**session))
+    return access, refresh
 
 
 def _set_auth_cookies(response: Response, *, access_token: str, refresh_token: str) -> None:
@@ -125,38 +131,68 @@ def _clear_auth_cookies(response: Response) -> None:
     response.delete_cookie(STATE_COOKIE_NAME, **cookie_opts)
 
 
-def _current_user_from_access_token(access_token: str | None) -> dict[str, Any]:
-    if not access_token:
-        raise HTTPException(status_code=401, detail="Not authenticated.")
-    payload = decode_jwt(access_token, _require_auth_secret(), expected_type="access")
-    return {
-        "userId": payload["sub"],
-        "provider": payload.get("provider", "kakao"),
-        "nickname": payload.get("nickname"),
-        "email": payload.get("email"),
-    }
+def _token_identity(token: str | None, token_type: str) -> tuple[dict[str, Any], UUID, str]:
+    if not token:
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
+    payload = decode_jwt(token, _require_auth_secret(), expected_type=token_type)
+    try:
+        user_id = UUID(payload["sub"])
+        sid = payload["sid"]
+        if not isinstance(sid, str) or not 1 <= len(sid) <= 64:
+            raise ValueError
+        if token_type == "refresh" and payload.get("jti") != sid:
+            raise ValueError
+    except (KeyError, ValueError, TypeError, AttributeError):
+        raise HTTPException(status_code=401, detail="다시 로그인해주세요.") from None
+    return payload, user_id, sid
 
 
-def _refresh_session_from_cookie(refresh_token: str | None) -> tuple[dict[str, Any], str]:
+def _active_session(connection, user_id: UUID, sid: str, *, lock: bool = False):
+    statement = select(AuthSession.token_hash, User.id, User.provider, User.nickname).join(
+        User, AuthSession.user_id == User.id
+    ).where(AuthSession.id == sid, AuthSession.user_id == user_id,
+            AuthSession.revoked_at.is_(None), AuthSession.expires_at > func.now())
+    if lock:
+        statement = statement.with_for_update(of=AuthSession)
+    row = connection.execute(statement).mappings().one_or_none()
+    if row is None:
+        raise HTTPException(status_code=401, detail="로그인이 만료됐습니다. 다시 로그인해주세요.")
+    return row
+
+
+def _current_user_from_access_token(database: Database, access_token: str | None) -> dict[str, Any]:
+    _, user_id, sid = _token_identity(access_token, "access")
+    with database.connect() as connection:
+        return _user_data(_active_session(connection, user_id, sid))
+
+
+def _rotate_session(database: Database, refresh_token: str | None) -> tuple[str, str]:
+    _, user_id, sid = _token_identity(refresh_token, "refresh")
+    with database.begin() as connection:
+        row = _active_session(connection, user_id, sid, lock=True)
+        if not hmac.compare_digest(row["token_hash"], token_digest(refresh_token)):
+            raise HTTPException(status_code=401, detail="다시 로그인해주세요.")
+        connection.execute(update(AuthSession).where(AuthSession.id == sid).values(revoked_at=func.now()))
+        access, refresh, session = _make_tokens(_user_data(row))
+        connection.execute(insert(AuthSession).values(**session))
+    return access, refresh
+
+
+def _revoke_session(database: Database, refresh_token: str | None) -> None:
     if not refresh_token:
-        raise HTTPException(status_code=401, detail="Missing refresh token.")
-    payload = decode_jwt(refresh_token, _require_auth_secret(), expected_type="refresh")
-    jti = payload.get("jti")
-    if not isinstance(jti, str):
-        raise HTTPException(status_code=401, detail="Invalid refresh token.")
-    session = refresh_session_store.get(jti)
-    if not session:
-        raise HTTPException(status_code=401, detail="Refresh session expired.")
-    if session.token_hash != token_digest(refresh_token):
-        refresh_session_store.delete(jti)
-        raise HTTPException(status_code=401, detail="Refresh session mismatch.")
-    user = {
-        "userId": session.user_id,
-        "provider": session.provider,
-        "nickname": session.nickname,
-        "email": session.email,
-    }
-    return user, jti
+        return
+    try:
+        _, user_id, sid = _token_identity(refresh_token, "refresh")
+    except HTTPException as error:
+        if error.status_code == 401:
+            return
+        raise
+    with database.begin() as connection:
+        connection.execute(update(AuthSession).where(
+            AuthSession.id == sid, AuthSession.user_id == user_id,
+            AuthSession.token_hash == token_digest(refresh_token),
+            AuthSession.revoked_at.is_(None),
+        ).values(revoked_at=func.now()))
 
 
 async def _exchange_kakao_code_for_user(code: str) -> dict[str, Any]:
@@ -177,26 +213,26 @@ async def _exchange_kakao_code_for_user(code: str) -> dict[str, Any]:
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
         if token_response.status_code >= 400:
-            raise HTTPException(status_code=token_response.status_code, detail="Kakao token exchange failed.")
+            raise HTTPException(status_code=token_response.status_code, detail="카카오 인증을 완료하지 못했습니다.")
         token_data = token_response.json()
 
         access_token = token_data.get("access_token")
         if not access_token:
-            raise HTTPException(status_code=502, detail="Kakao access token missing.")
+            raise HTTPException(status_code=502, detail="카카오 인증 응답을 확인하지 못했습니다.")
 
         user_response = await client.get(
             KAKAO_USERINFO_URL,
             headers={"Authorization": f"Bearer {access_token}"},
         )
         if user_response.status_code >= 400:
-            raise HTTPException(status_code=user_response.status_code, detail="Kakao user info request failed.")
+            raise HTTPException(status_code=user_response.status_code, detail="카카오 사용자 정보를 가져오지 못했습니다.")
         user_data = user_response.json()
 
     kakao_account = user_data.get("kakao_account") or {}
     profile = kakao_account.get("profile") or {}
     kakao_id = user_data.get("id")
     if kakao_id is None:
-        raise HTTPException(status_code=502, detail="Kakao user id missing.")
+        raise HTTPException(status_code=502, detail="카카오 사용자 식별자를 확인하지 못했습니다.")
 
     return {
         "userId": f"kakao:{kakao_id}",
@@ -217,14 +253,14 @@ async def kakao_login_url() -> dict[str, Any]:
 
 
 @router.get("/kakao/login")
-async def kakao_login() -> RedirectResponse:
+async def kakao_login(request_nickname: bool = Query(default=False)) -> RedirectResponse:
     settings = get_settings()
     _require_auth_secret()
     if not settings.kakao_rest_api_key:
-        raise HTTPException(status_code=503, detail="Kakao login is not configured.")
+        raise HTTPException(status_code=503, detail="카카오 로그인 설정이 없습니다.")
 
     state = new_state_token()
-    response = RedirectResponse(url=_build_kakao_login_url(state))
+    response = RedirectResponse(url=_build_kakao_login_url(state, request_nickname=request_nickname))
     response.set_cookie(
         STATE_COOKIE_NAME,
         state,
@@ -239,88 +275,61 @@ async def kakao_callback(
     code: str = Query(..., min_length=1),
     state: str | None = None,
     oauth_state: str | None = Cookie(default=None, alias=STATE_COOKIE_NAME),
+    database: Database = Depends(get_database),
 ) -> RedirectResponse:
     settings = get_settings()
     try:
         if not state or not oauth_state or state != oauth_state:
-            raise HTTPException(status_code=400, detail="OAuth state validation failed.")
+            raise HTTPException(status_code=400, detail="로그인 요청을 확인하지 못했습니다. 다시 시도해주세요.")
 
         user = await _exchange_kakao_code_for_user(code)
-        access_token = _make_access_token(user)
-        refresh_token, session = _make_refresh_token(user)
-        refresh_session_store.cleanup()
-        refresh_session_store.save(session)
+        access_token, refresh_token = await run_in_threadpool(_persist_login, database, user)
 
         response = RedirectResponse(url=settings.auth_frontend_success_url)
         _set_auth_cookies(response, access_token=access_token, refresh_token=refresh_token)
         response.delete_cookie(STATE_COOKIE_NAME, **_cookie_settings())
         return response
-    except HTTPException:
+    except (HTTPException, DatabaseError, httpx.HTTPError, ValueError):
         response = RedirectResponse(url=settings.auth_frontend_failure_url)
         _clear_auth_cookies(response)
         return response
 
 
 @router.get("/me")
-async def auth_me(access_token: str | None = Cookie(default=None, alias=ACCESS_COOKIE_NAME)) -> dict[str, Any]:
-    user = _current_user_from_access_token(access_token)
+def auth_me(access_token: str | None = Cookie(default=None, alias=ACCESS_COOKIE_NAME),
+            database: Database = Depends(get_database)) -> dict[str, Any]:
+    user = _current_user_from_access_token(database, access_token)
     return {"ok": True, "authenticated": True, "user": user}
 
 
 @router.post("/refresh")
-async def auth_refresh(
-    refresh_token: str | None = Cookie(default=None, alias=REFRESH_COOKIE_NAME),
-) -> Response:
-    user, old_jti = _refresh_session_from_cookie(refresh_token)
-    refresh_session_store.delete(old_jti)
-    access_token = _make_access_token(user)
-    new_refresh_token, session = _make_refresh_token(user)
-    refresh_session_store.save(session)
-
-    response = Response(
-        content='{"ok":true}',
-        media_type="application/json",
-    )
-    _set_auth_cookies(response, access_token=access_token, refresh_token=new_refresh_token)
+def auth_refresh(refresh_token: str | None = Cookie(default=None, alias=REFRESH_COOKIE_NAME),
+                 database: Database = Depends(get_database)) -> Response:
+    access_token, refresh_token = _rotate_session(database, refresh_token)
+    response = Response(content='{"ok":true}', media_type="application/json")
+    _set_auth_cookies(response, access_token=access_token, refresh_token=refresh_token)
     return response
 
 
 @router.post("/logout")
-async def auth_logout(
-    refresh_token: str | None = Cookie(default=None, alias=REFRESH_COOKIE_NAME),
-) -> Response:
-    if refresh_token:
-        try:
-            payload = decode_jwt(refresh_token, _require_auth_secret(), expected_type="refresh")
-            jti = payload.get("jti")
-            if isinstance(jti, str):
-                refresh_session_store.delete(jti)
-        except HTTPException:
-            pass
-
+def auth_logout(refresh_token: str | None = Cookie(default=None, alias=REFRESH_COOKIE_NAME),
+                database: Database = Depends(get_database)) -> Response:
+    _revoke_session(database, refresh_token)
     response = Response(content='{"ok":true}', media_type="application/json")
     _clear_auth_cookies(response)
     return response
 
 
 @router.get("/session")
-async def auth_session(
-    access_token: str | None = Cookie(default=None, alias=ACCESS_COOKIE_NAME),
-    refresh_token: str | None = Cookie(default=None, alias=REFRESH_COOKIE_NAME),
-) -> dict[str, Any]:
-    authenticated = False
-    user: dict[str, Any] | None = None
-
+def auth_session(access_token: str | None = Cookie(default=None, alias=ACCESS_COOKIE_NAME),
+                 refresh_token: str | None = Cookie(default=None, alias=REFRESH_COOKIE_NAME),
+                 database: Database = Depends(get_database)) -> dict[str, Any]:
+    user = None
     if access_token:
         try:
-            user = _current_user_from_access_token(access_token)
-            authenticated = True
-        except HTTPException:
-            authenticated = False
-
-    return {
-        "ok": True,
-        "authenticated": authenticated,
-        "hasRefreshToken": bool(refresh_token),
-        "user": user,
-    }
+            user = _current_user_from_access_token(database, access_token)
+        except HTTPException as error:
+            if error.status_code != 401:
+                raise
+    return {"ok": True, "authenticated": user is not None,
+            "hasRefreshToken": bool(refresh_token), "user": user}
