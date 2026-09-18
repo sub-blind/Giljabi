@@ -8,6 +8,44 @@ info:
 servers:
   - url: http://localhost:8000
 paths:
+  /api/v1/health/database:
+    get:
+      summary: PostgreSQL 실제 연결 확인
+      description: SELECT 1로 실제 연결을 확인한다. 연결 주소와 비밀번호는 반환하지 않는다.
+      responses:
+        '200':
+          description: 실제 PostgreSQL 연결 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, database]
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  database:
+                    type: string
+                    enum: [postgresql]
+        '503':
+          description: DB 설정 없음 또는 연결 실패
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [error]
+                properties:
+                  error:
+                    type: object
+                    required: [code, message, retryable]
+                    properties:
+                      code:
+                        type: string
+                        enum: [DATABASE_NOT_CONFIGURED, DATABASE_UNAVAILABLE]
+                      message:
+                        type: string
+                      retryable:
+                        type: boolean
   /healthz:
     get:
       summary: Health check

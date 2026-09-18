@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -29,6 +30,11 @@ class Settings(BaseSettings):
     related_api_base_month: str = "202504"
     openai_api_key: str = ""
     openai_model: str = ""
+
+    # 서버 전용 PostgreSQL 연결. 비밀번호는 설정 출력에서 숨긴다.
+    database_url: SecretStr = SecretStr("")
+    database_pool_size: int = Field(default=2, ge=1, le=10)
+    database_connect_timeout_seconds: int = Field(default=5, ge=1, le=30)
 
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000,http://127.0.0.1:5173"
     kakao_rest_api_key: str = ""

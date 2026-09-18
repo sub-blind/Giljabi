@@ -40,8 +40,14 @@ def client(service):
     return TestClient(app)
 
 
+def offline_settings(**overrides):
+    # 로컬 .env와 셸의 실제 AI 인증 설정을 단위 테스트로 가져오지 않는다.
+    values = {"openai_api_key": "", "openai_model": "", **overrides}
+    return Settings(_env_file=None, **values)
+
+
 def test_manual_intent_and_real_adapter_contract():
-    with client(DayTripService(Settings(), provider, testing=True)) as api:
+    with client(DayTripService(offline_settings(), provider, testing=True)) as api:
         assert api.get("/api/v1/day-trip/status").json()["testing"] is True
         result = api.post("/api/v1/day-trip/intent", json={"query": "바다 보고 식사하기"}).json()
         assert result["mode"] == "manual" and result["intent"]["durationDays"] == 1
@@ -55,7 +61,7 @@ def test_manual_intent_and_real_adapter_contract():
 def test_invalid_course_ids_are_rejected_before_provider_call(ids):
     async def forbidden(*args, **kwargs):
         raise AssertionError("검증 실패 입력은 외부 API를 호출하면 안 됩니다.")
-    with client(DayTripService(Settings(), forbidden)) as api:
+    with client(DayTripService(offline_settings(), forbidden)) as api:
         response = api.post("/api/v1/day-trip/course", json={"placeIds": ids, "intent": INTENT})
         assert response.status_code == 422
         assert response.json()["error"]["code"] == "INVALID_INPUT"
@@ -63,7 +69,7 @@ def test_invalid_course_ids_are_rejected_before_provider_call(ids):
 
 @pytest.mark.parametrize("ids", [["12_1001"], ["39_1002", "12_1001"]])
 def test_short_course_revalidates_and_preserves_order_without_ai(ids):
-    with client(DayTripService(Settings(), provider)) as api:
+    with client(DayTripService(offline_settings(), provider)) as api:
         response = api.post("/api/v1/day-trip/course", json={"placeIds": ids, "intent": INTENT})
         assert response.status_code == 200
         course = response.json()
@@ -77,9 +83,9 @@ def test_region_type_and_missing_places_are_rejected():
         if operation == KorServiceOp.DETAIL_COMMON:
             return envelope([{**ROWS[0], "addr1": "서울특별시", "areacode": "1"}])
         return await provider(operation, extra_params=extra_params)
-    with client(DayTripService(Settings(), outside)) as api:
+    with client(DayTripService(offline_settings(), outside)) as api:
         assert api.get("/api/v1/day-trip/places/12_1001").status_code == 404
-    with client(DayTripService(Settings(), provider)) as api:
+    with client(DayTripService(offline_settings(), provider)) as api:
         assert api.get("/api/v1/day-trip/places/39_1001").status_code == 404
         assert api.get("/api/v1/day-trip/places/12_9999").status_code == 404
 
@@ -90,7 +96,7 @@ def test_malformed_fields_are_not_rendered_as_facts():
             return envelope([{**ROWS[0], "mapy": "NaN", "mapx": "Infinity", "firstimage": "javascript:alert(1)",
                               "overview": "<script>alert(1)</script><b>제공된 소개</b>"}])
         return await provider(operation, extra_params=extra_params)
-    with client(DayTripService(Settings(), malformed)) as api:
+    with client(DayTripService(offline_settings(), malformed)) as api:
         place = api.get("/api/v1/day-trip/places/12_1001").json()
         assert place["latitude"] is None and place["longitude"] is None and place["imageUrl"] is None
         assert place["overview"] == "제공된 소개"
@@ -108,7 +114,7 @@ def test_batched_ai_evidence_is_called_once_and_checked_against_source(bad):
         return httpx.Response(200, json={"status": "completed", "output": [{"type": "message", "content": [
             {"type": "output_text", "text": json.dumps(output, ensure_ascii=False)}]}]})
     ai_client = httpx.AsyncClient(transport=httpx.MockTransport(ai_handler))
-    service = DayTripService(Settings(openai_api_key="test-only-key", openai_model="test-model"), provider, ai_client)
+    service = DayTripService(offline_settings(openai_api_key="test-only-key", openai_model="test-model"), provider, ai_client)
     with client(service) as api:
         result = api.post("/api/v1/day-trip/course", json={"placeIds": ["12_1001", "39_1002"], "intent": INTENT}).json()
         assert len(calls) == 1
@@ -120,7 +126,7 @@ def test_batched_ai_evidence_is_called_once_and_checked_against_source(bad):
 def test_provider_failure_and_unsupported_input_are_korean():
     async def failed(*args, **kwargs):
         raise TourApiError("관광 정보를 불러오지 못했어요.", status_code=502)
-    with client(DayTripService(Settings(), failed)) as api:
+    with client(DayTripService(offline_settings(), failed)) as api:
         response = api.post("/api/v1/day-trip/places/search", json={"intent": INTENT})
         assert response.status_code == 502 and "관광 정보" in response.json()["error"]["message"]
         assert api.post("/api/v1/day-trip/intent", json={"query": ""}).status_code == 422
@@ -138,6 +144,33 @@ def test_amenities_are_excluded_from_trip_candidates():
         if operation in {KorServiceOp.AREA_BASED_LIST, KorServiceOp.SEARCH_KEYWORD}:
             return envelope([{**ROWS[0], "title": "테스트 해변 화장실"}])
         return await provider(operation, extra_params=extra_params)
-    with client(DayTripService(Settings(), amenities)) as api:
+    with client(DayTripService(offline_settings(), amenities)) as api:
         response = api.post("/api/v1/day-trip/places/search", json={"intent": INTENT})
         assert response.json()["places"] == []
+
+
+@pytest.mark.parametrize("response", [
+    httpx.Response(429, json={"error": {"code": "insufficient_quota"}}),
+    httpx.Response(200, json={"status": "completed", "output": [{"type": "message", "content": [
+        {"type": "refusal", "refusal": "응답 거절"}]}]}),
+    httpx.Response(200, json={"status": "completed", "output": [{"type": "message", "content": [
+        {"type": "output_text", "text": json.dumps({"city": "서울시", "categories": ["culture"],
+         "keywords": [], "preferences": [], "unsupportedConditions": []})}]}]}),
+])
+def test_unusable_ai_intent_keeps_manual_conditions(response):
+    ai = httpx.AsyncClient(transport=httpx.MockTransport(lambda request: response))
+    service = DayTripService(offline_settings(openai_api_key="test-only-key", openai_model="test-model"), provider, ai)
+    with client(service) as api:
+        result = api.post("/api/v1/day-trip/intent", json={"query": "춘천 박물관과 식사"}).json()
+        assert result["mode"] == "manual"
+        assert result["intent"]["city"] == "춘천시"
+        assert set(result["intent"]["categories"]) == {"culture", "food"}
+        assert result["notices"]
+    asyncio.run(ai.aclose())
+
+
+def test_local_ai_environment_is_excluded_from_unit_settings(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "test-environment-key")
+    monkeypatch.setenv("OPENAI_MODEL", "test-environment-model")
+    settings = offline_settings()
+    assert not settings.openai_api_key and not settings.openai_model

@@ -10,12 +10,16 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import api_v1_router
 from app.config import get_settings
+from app.database import Database
 from app.tour_api.client import TourApiError
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
-    yield
+async def lifespan(app: FastAPI):
+    try:
+        yield
+    finally:
+        app.state.database.dispose()
 
 
 def create_app() -> FastAPI:
@@ -25,6 +29,7 @@ def create_app() -> FastAPI:
         version="0.1.0",
         lifespan=lifespan,
     )
+    app.state.database = Database(settings)
 
     origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
     app.add_middleware(

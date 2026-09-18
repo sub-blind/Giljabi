@@ -1,0 +1,22 @@
+name: storyroute-local-db
+
+services:
+  postgres:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_DB: ${STORYROUTE_DB_NAME:-storyroute}
+      POSTGRES_USER: ${STORYROUTE_DB_USER:-storyroute}
+      POSTGRES_PASSWORD: ${STORYROUTE_DB_PASSWORD:?서버 .env에 로컬 DB 비밀번호를 설정해주세요}
+    ports:
+      - "127.0.0.1:${STORYROUTE_DB_PORT:-55432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+
+volumes:
+  postgres_data:
