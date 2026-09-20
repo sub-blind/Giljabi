@@ -91,8 +91,11 @@ export default function StoryRoute() {
       void getRegions(controller.signal).then(value => {
         if (active) setCities(value.cities);
       }).catch(() => undefined);
-      for (let attempt = 0; attempt < 2 && active; attempt += 1) {
-        const statusResult = await getStatus(controller.signal).then(value => ({ ok: true as const, value })).catch(() => ({ ok: false as const }));
+      // 무료 서버의 절전 해제는 첫 요청에서 충분히 기다리고, 실패하면 짧게 한 번만 재확인한다.
+      // 두 요청의 합계가 안내 시간과 크게 어긋나지 않도록 전체 대기를 약 76초로 제한한다.
+      const statusTimeouts = [65000, 10000];
+      for (let attempt = 0; attempt < statusTimeouts.length && active; attempt += 1) {
+        const statusResult = await getStatus(controller.signal, statusTimeouts[attempt]).then(value => ({ ok: true as const, value })).catch(() => ({ ok: false as const }));
         if (!active) return;
         if (statusResult.ok) {
           setConnection(statusResult.value);
@@ -100,7 +103,7 @@ export default function StoryRoute() {
           if (attempt > 0) setMessage("여행 서버에 다시 연결했어요.");
           return;
         }
-        if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 1500));
+        if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 1200));
       }
       if (active) setConnectionState("error");
     }
@@ -381,7 +384,7 @@ export default function StoryRoute() {
         onClick={() => { if (phase.id === "course") { if (state.course) update({ phase: "course" }); else void build(); } else if (phase.id === "create") openCreate(); else update({ phase: phase.id }); }}><span>{index + 1}</span>{phase.label}</button>)}</nav>
       {connection?.testing && <p className={styles.warning}>기능 검증용 테스트 데이터예요. 실제 관광 장소가 아니에요.</p>}
       {connection && !connection.tourismReady && <p className={styles.warning}>관광 데이터 연결을 준비 중이에요. 지금은 여행 조건을 입력하고 수정할 수 있어요.</p>}
-      {connectionState === "connecting" && <div className={styles.connectionNotice} role="status" aria-live="polite"><RefreshCw className={styles.connectionSpinner} size={18} aria-hidden="true" /><div><strong>여행 정보를 준비하고 있어요</strong><span>첫 접속은 서버를 시작하느라 최대 1분 정도 걸릴 수 있어요. 연결되면 검색 버튼이 자동으로 열려요.</span></div></div>}
+      {connectionState === "connecting" && <div className={styles.connectionNotice} role="status" aria-live="polite"><RefreshCw className={styles.connectionSpinner} size={18} aria-hidden="true" /><div><strong>여행 정보를 준비하고 있어요</strong><span>무료 서버가 잠들어 있었다면 보통 30~60초 걸릴 수 있어요. 연결되면 검색 버튼이 자동으로 열려요.</span></div></div>}
       {connectionState === "error" && <div className={styles.connectionError} role="alert"><div><strong>여행 서버에 연결하지 못했어요</strong><span>네트워크를 확인한 뒤 다시 연결해주세요. 선택한 조건은 그대로 유지돼요.</span></div><button className={styles.secondary} type="button" disabled={busy} onClick={() => setConnectionAttempt(value => value + 1)}><RefreshCw size={15} aria-hidden="true" />다시 연결</button></div>}
       {auth.error && <p className={styles.warning}>{auth.error}</p>}
       <div className={styles.status} role="status" aria-live="polite">{message || busyMessage}</div>

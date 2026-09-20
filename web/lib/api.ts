@@ -2,14 +2,14 @@ import type { AccessResult, Connection, Course, CourseRoute, Intent, Place, Sear
 
 const prefix = "/api/v1/day-trip";
 
-async function request<T>(path: string, data?: unknown, signal?: AbortSignal): Promise<T> {
+async function request<T>(path: string, data?: unknown, signal?: AbortSignal, timeoutMs = 75000): Promise<T> {
   const controller = new AbortController();
   const abort = () => controller.abort();
   signal?.addEventListener("abort", abort, { once: true });
   if (signal?.aborted) controller.abort();
   // Render 무료 인스턴스가 잠든 첫 요청은 다시 뜨는 데 약 1분이 걸릴 수 있다.
   // 브라우저가 그보다 먼저 요청을 끊으면 서버가 깨어나도 화면이 연결 상태를 복구하지 못한다.
-  const timer = setTimeout(abort, 75000);
+  const timer = setTimeout(abort, timeoutMs);
   try {
     const response = await fetch(prefix + path, {
       method: data === undefined ? "GET" : "POST", cache: "no-store",
@@ -29,7 +29,7 @@ async function request<T>(path: string, data?: unknown, signal?: AbortSignal): P
   }
 }
 
-export const getStatus = (signal?: AbortSignal) => request<Connection>("/status", undefined, signal);
+export const getStatus = (signal?: AbortSignal, timeoutMs?: number) => request<Connection>("/status", undefined, signal, timeoutMs);
 export const getRegions = (signal?: AbortSignal) => request<Regions>("/regions", undefined, signal);
 export const parseIntent = (query: string, signal?: AbortSignal) => request<{ intent: Intent; mode: "ai" | "manual"; notices: string[] }>("/intent", { query }, signal);
 export const searchPlaces = (intent: Intent, page = 1, signal?: AbortSignal) => request<SearchResult>("/places/search", { intent, page }, signal);
