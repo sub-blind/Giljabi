@@ -28,6 +28,7 @@ async function authRequest<T>(path: string, method = "GET"): Promise<T> {
 export const getAuthSession = () => authRequest<AuthSession>("/session");
 export const refreshAuthSession = () => authRequest<{ ok: true }>("/refresh", "POST");
 export const logoutAuthSession = () => authRequest<{ ok: true }>("/logout", "POST");
+export const deleteAuthAccount = () => authRequest<{ ok: true }>("/account", "DELETE");
 
 export function beginKakaoLogin(returnTo = "/?restore=1") {
   sessionStorage.setItem("storyroute.auth.return-to", returnTo);

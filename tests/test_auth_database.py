@@ -3,12 +3,12 @@
 import os
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
-from sqlalchemy import func, select, update
+from sqlalchemy import func, insert, select, update
 from sqlalchemy.engine import make_url
 
 from app.api.v1.endpoints import auth
@@ -16,7 +16,7 @@ from app.auth_tokens import create_jwt, decode_jwt, future_ts, token_digest
 from app.config import Settings, get_settings
 from app.database import Database, DatabaseUnavailable
 from app.main import create_app
-from app.models import AuthSession, User
+from app.models import AuthSession, Course, CoursePlace, User
 
 
 @pytest.fixture
@@ -130,6 +130,36 @@ def test_session_survives_new_application_and_logout_revokes_access(local_db, ex
         assert api.get("/api/v1/auth/session").json()["authenticated"] is False
     with pytest.raises(HTTPException):
         auth._rotate_session(database, refresh)
+
+
+def test_account_delete_removes_user_sessions_and_saved_courses(local_db, external_user, config):
+    database, connection = local_db
+    access, refresh = auth._persist_login(database, external_user)
+    user_id = UUID(auth._current_user_from_access_token(database, access)["userId"])
+    course_id = uuid4()
+    with database.begin() as transaction:
+        transaction.execute(insert(Course).values(
+            id=course_id, user_id=user_id, title="삭제할 춘천 코스",
+            intent={"region": "gangwon", "city": "춘천시", "durationDays": 1,
+                    "categories": ["attraction"], "keywords": [], "preferences": [],
+                    "unsupportedConditions": []}, version=1,
+        ))
+        transaction.execute(insert(CoursePlace).values(
+            id=uuid4(), course_id=course_id, source_service="KorService2",
+            content_id="12345", content_type_id="12", position=1,
+        ))
+    app = create_app()
+    app.state.database = database
+    with TestClient(app) as api:
+        api.cookies.set(auth.REFRESH_COOKIE_NAME, refresh)
+        response = api.delete("/api/v1/auth/account")
+        assert response.status_code == 200
+        assert response.json() == {"ok": True}
+        assert "Max-Age=0" in response.headers["set-cookie"]
+    assert connection.execute(select(func.count()).select_from(User).where(User.id == user_id)).scalar_one() == 0
+    assert connection.execute(select(func.count()).select_from(AuthSession).where(AuthSession.user_id == user_id)).scalar_one() == 0
+    assert connection.execute(select(func.count()).select_from(Course).where(Course.id == course_id)).scalar_one() == 0
+    assert connection.execute(select(func.count()).select_from(CoursePlace).where(CoursePlace.course_id == course_id)).scalar_one() == 0
 
 
 def test_refresh_rotation_rejects_replay_and_old_access(local_db, external_user, config):

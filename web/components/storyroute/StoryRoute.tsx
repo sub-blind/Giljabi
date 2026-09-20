@@ -16,6 +16,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { SavedCoursesDialog } from "@/components/auth/SavedCoursesDialog";
 import { deleteAccountCourse, listAccountCourses, saveAccountCourse, type SavedAccountCourse } from "@/lib/accountCourses";
 import { gangwonMapRegions } from "@/data/gangwonMap";
+import { SiteFooter } from "@/components/common/SiteFooter";
 
 const CourseMap = dynamic(() => import("./CourseMap"), { ssr: false, loading: () => <p className={styles.loading}>지도를 준비하고 있어요…</p> });
 interface TripState {
@@ -118,7 +119,6 @@ export default function StoryRoute() {
     window.history.replaceState({}, "", window.location.pathname);
     setPendingRestore(saveAccount);
     // 로그인 전 저장한 코스를 로그인 완료 후 한 번만 복원한다.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -447,7 +447,7 @@ export default function StoryRoute() {
       {state.phase === "discover" && !!selected.length && <div className={styles.mobileDock}><div><strong>{selected.length}곳 담았어요</strong><small>방문 순서와 길찾기를 확인하세요</small></div>
         <button className={styles.primary} type="button" disabled={busy} onClick={() => void build()}>{state.busy === "course" ? "확인 중…" : "코스 준비"}<ArrowRight size={16} aria-hidden="true" /></button></div>}
     </main>
-    <footer className={styles.footer}><strong>StoryRoute.</strong><span>당신의 순서로 만드는 하루</span><small>관광 콘텐츠 출처: ⓒ한국관광공사 · 지도: © OpenStreetMap contributors</small></footer>
+    <SiteFooter />
     {detail && <PlaceDetailPanel key={`${detail.id}-${detail.tab}`} id={detail.id} initialTab={detail.tab} onClose={() => setDetail(null)} onCandidate={addCandidate} />}
     {savedCoursesOpen && <SavedCoursesDialog courses={accountCourses} busy={accountBusy || busy} onClose={() => setSavedCoursesOpen(false)} onOpen={saved => void openAccountCourse(saved)} onDelete={saved => void removeAccountCourse(saved)} />}
   </div>;

@@ -6,7 +6,7 @@
 
 ## 1. 기본 구성
 
-프런트는 기존 Next.js 15·React 19·TypeScript 구조를 사용한다. 화면 스타일은 CSS Modules로 구성한다. 서버는 기존 FastAPI와 관광 API 어댑터를 활용한다. 프런트의 내부 `/api/v1/day-trip` 요청을 Next.js의 경로 연결로 백엔드에 전달한다.
+프런트는 Next.js 16·React 19·TypeScript 구조를 사용한다. 화면 스타일은 CSS Modules로 구성한다. 서버는 기존 FastAPI와 관광 API 어댑터를 활용한다. 프런트의 내부 `/api/v1/day-trip` 요청을 Next.js의 경로 연결로 백엔드에 전달한다.
 
 ## 2. 파일 배치
 
@@ -33,6 +33,8 @@
 | `web/lib/storyroute/types.ts` | 화면과 서버의 공통 필드 |
 | `web/lib/storyroute/storage.ts` | 브라우저 저장·복원 입력 검사 |
 | `web/components/auth/AuthProvider.tsx` | 카카오 로그인 상태·회원 정보·로그아웃 |
+| `web/app/privacy`·`web/app/terms` | 개인정보처리방침·이용약관 공개 페이지 |
+| `web/app/account` | 기기 여행 기록 삭제와 회원 탈퇴 |
 | `web/lib/accountCourses.ts` | 계정 코스 생성·목록·삭제 요청 |
 | `app/services/day_trip.py` | 관광 검색·장소 검증·AI 근거 확인 |
 | `app/services/travel_content.py` | 별도 관광 서비스의 응답·매칭·안전한 공개 미디어 주소 |

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import Link from "next/link";
 import { Bookmark, FileText, Laptop, X } from "lucide-react";
 import { beginKakaoLogin } from "@/lib/auth";
 import { useAuth } from "./AuthProvider";
@@ -32,6 +33,7 @@ export function LoginDialog() {
       <p className={styles.description}>선택한 여행 코스를 계정에 저장해요.</p>
       <ul>{benefits.map(({ icon: Icon, text }) => <li key={text}><Icon size={20} aria-hidden="true" /><span>{text}</span></li>)}</ul>
       <button className={styles.kakao} type="button" onClick={() => beginKakaoLogin(loginReturnTo)}><span aria-hidden="true">●</span>카카오로 시작하기</button>
+      <p className={styles.policy}>로그인하기 전에 <Link href="/terms" onClick={closeLogin}>이용약관</Link>과 <Link href="/privacy" onClick={closeLogin}>개인정보처리방침</Link>을 확인해주세요.</p>
       <button className={styles.guest} type="button" onClick={closeLogin}>로그인 없이 계속 둘러보기</button>
     </section>
   </div>;

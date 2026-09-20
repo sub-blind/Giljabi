@@ -10,7 +10,7 @@ import httpx
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, Response
 from fastapi.responses import RedirectResponse
 from starlette.concurrency import run_in_threadpool
-from sqlalchemy import select, update, func
+from sqlalchemy import delete, select, update, func
 from sqlalchemy.dialects.postgresql import insert
 
 from app.database import Database, DatabaseError, get_database
@@ -195,6 +195,17 @@ def _revoke_session(database: Database, refresh_token: str | None) -> None:
         ).values(revoked_at=func.now()))
 
 
+def _delete_account(database: Database, refresh_token: str | None) -> None:
+    _, user_id, sid = _token_identity(refresh_token, "refresh")
+    with database.begin() as connection:
+        row = _active_session(connection, user_id, sid, lock=True)
+        if not hmac.compare_digest(row["token_hash"], token_digest(refresh_token)):
+            raise HTTPException(status_code=401, detail="다시 로그인해주세요.")
+        result = connection.execute(delete(User).where(User.id == user_id))
+        if result.rowcount != 1:
+            raise HTTPException(status_code=401, detail="이미 삭제되었거나 로그인 정보가 만료됐습니다.")
+
+
 async def _exchange_kakao_code_for_user(code: str) -> dict[str, Any]:
     settings = get_settings()
     token_payload = {
@@ -315,6 +326,15 @@ def auth_refresh(refresh_token: str | None = Cookie(default=None, alias=REFRESH_
 def auth_logout(refresh_token: str | None = Cookie(default=None, alias=REFRESH_COOKIE_NAME),
                 database: Database = Depends(get_database)) -> Response:
     _revoke_session(database, refresh_token)
+    response = Response(content='{"ok":true}', media_type="application/json")
+    _clear_auth_cookies(response)
+    return response
+
+
+@router.delete("/account")
+def auth_delete_account(refresh_token: str | None = Cookie(default=None, alias=REFRESH_COOKIE_NAME),
+                        database: Database = Depends(get_database)) -> Response:
+    _delete_account(database, refresh_token)
     response = Response(content='{"ok":true}', media_type="application/json")
     _clear_auth_cookies(response)
     return response

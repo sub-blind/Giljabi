@@ -3,7 +3,7 @@
 .product button { cursor:pointer; }
 .product button:disabled { cursor:default; opacity:.5; }
 .product button:focus-visible,.product a:focus-visible,.product textarea:focus-visible,.product input:focus-visible,.product select:focus-visible,.product summary:focus-visible { outline:3px solid var(--sr-coral); outline-offset:3px; }
-.header,.main,.footer { max-width:1200px; margin:0 auto; padding-left:28px; padding-right:28px; }
+.header,.main { max-width:1200px; margin:0 auto; padding-left:28px; padding-right:28px; }
 .header { display:flex; align-items:center; flex-wrap:wrap; gap:16px; min-height:92px; }
 .brand { display:flex; align-items:center; gap:9px; border:0; background:none; color:var(--sr-teal); font-family:inherit; font-size:28px; font-weight:700; min-height:44px; }
 .brand span { color:var(--sr-coral); margin-left:-8px; }
@@ -89,10 +89,6 @@
 .map { height:460px; border-radius:12px; background:#e9eee3; z-index:0; }
 .map :global(.leaflet-control-zoom a) { width:44px; height:44px; line-height:44px; }
 .marker { display:grid!important; place-items:center; background:var(--sr-teal); color:white; border:3px solid white; border-radius:50%; font-weight:700; box-shadow:0 3px 12px #0003; }
-.footer { display:flex; align-items:center; flex-wrap:wrap; gap:20px; padding-top:26px; padding-bottom:35px; border-top:1px solid var(--sr-line); color:var(--sr-muted); }
-.footer strong { font-family:inherit; font-size:23px; color:var(--sr-teal); }
-.footer span,.footer small { font-size:12px; }
-.footer small { margin-left:auto; }
 .dialog { width:min(560px,calc(100% - 24px)); max-height:85dvh; padding:24px; border:1px solid #e3e9ef; border-radius:20px; color:#172331; background:#ffffff; overflow:auto; }
 .dialog::backdrop { background:#18251d88; }
 .dialog .row { margin-bottom:20px; }
@@ -259,7 +255,6 @@
   .map { height:340px; }
   .courseBody .reason { font-size:13px; }
   .photoFilters { gap:12px; }
-  .footer { gap:10px; }
 }
 
 .routePanel { background:var(--sr-paper); border:1px solid var(--sr-line); border-radius:18px; padding:24px 26px; margin-bottom:24px; min-width:0; }

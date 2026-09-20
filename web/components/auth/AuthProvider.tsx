@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { getAuthSession, logoutAuthSession, refreshAuthSession, type AuthSession } from "@/lib/auth";
+import { deleteAuthAccount, getAuthSession, logoutAuthSession, refreshAuthSession, type AuthSession } from "@/lib/auth";
 
 interface AuthContextValue extends AuthSession {
   ready: boolean;
@@ -12,6 +12,7 @@ interface AuthContextValue extends AuthSession {
   closeLogin: () => void;
   reload: () => Promise<AuthSession>;
   logout: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
 }
 
 const guest: AuthSession = { authenticated: false, hasRefreshToken: false, user: null };
@@ -53,10 +54,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setError("");
   }, []);
 
+  const deleteAccount = useCallback(async () => {
+    await deleteAuthAccount();
+    setSession(guest);
+    setError("");
+  }, []);
+
   const value = useMemo(() => ({ ...session, ready, error, loginOpen, loginReturnTo,
     openLogin: (returnTo = "/") => { setLoginReturnTo(returnTo); setLoginOpen(true); },
-    closeLogin: () => setLoginOpen(false), reload, logout,
-  }), [session, ready, error, loginOpen, loginReturnTo, reload, logout]);
+    closeLogin: () => setLoginOpen(false), reload, logout, deleteAccount,
+  }), [session, ready, error, loginOpen, loginReturnTo, reload, logout, deleteAccount]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
