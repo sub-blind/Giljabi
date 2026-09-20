@@ -39,7 +39,7 @@ export function GangwonRegionMap({ selectedCity, busy, hasSelection, onSelect }:
       <button className={styles.regionAllButton} type="button" disabled={busy} aria-pressed={!selectedCity} onClick={() => activate(null)}>강원도 전체로 찾기</button>
       <div className={styles.regionLegend} aria-hidden="true">
         <span><i />지역 위에 마우스를 올려보세요</span>
-        <span><i />선택하면 장소 찾기로 이동해요</span>
+        <span><i />선택하면 여행 조건에 반영돼요</span>
       </div>
       {selectedCity && <p className={styles.currentRegion}>선택한 여행 지역 <strong>{selectedCity}</strong></p>}
     </div>

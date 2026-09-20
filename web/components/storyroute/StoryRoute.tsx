@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useReducer, useRef, useState } from "react";
-import { ArrowRight, LogIn, LogOut, MapPin, Route, Shuffle, Trash2, UserRound } from "lucide-react";
+import { ArrowRight, Bookmark, LibraryBig, LogIn, LogOut, MapPin, Route, Shuffle, Trash2, UserRound } from "lucide-react";
 import { createCourse, getCourseRoute, getRegions, getStatus, parseIntent, searchPlaces } from "@/lib/api";
 import { loadCourse, saveCourse } from "@/lib/storyroute/storage";
 import { categoryLabels, defaultIntent, type Connection, type Course, type CourseRoute, type Intent, type Phase, type Place, type TravelPhoto } from "@/lib/storyroute/types";
@@ -298,8 +298,8 @@ export default function StoryRoute() {
     <header className={styles.header}>
       <button className={styles.brand} type="button" onClick={openCreate} disabled={busy}><Route size={25} aria-hidden="true" />StoryRoute<span>.</span></button>
       <span className={styles.scope}><MapPin size={14} aria-hidden="true" />강원도 · 당일</span>
-      {hasSaved && <button className={styles.secondary} type="button" onClick={() => void restore()} disabled={busy}>저장한 코스</button>}
-      {auth.authenticated && <button className={styles.secondary} type="button" disabled={busy || accountBusy} onClick={() => setSavedCoursesOpen(true)}>내 코스 {accountCourses.length ? accountCourses.length : ""}</button>}
+      {hasSaved && <button className={`${styles.secondary} ${styles.headerIconButton}`} type="button" onClick={() => void restore()} disabled={busy} aria-label="이 브라우저에 저장한 코스 불러오기"><Bookmark size={17} aria-hidden="true" /><span>저장한 코스</span></button>}
+      {auth.authenticated && <button className={`${styles.secondary} ${styles.headerIconButton}`} type="button" disabled={busy || accountBusy} onClick={() => setSavedCoursesOpen(true)} aria-label={`계정에 저장한 코스 보기${accountCourses.length ? `, ${accountCourses.length}개` : ""}`}><LibraryBig size={17} aria-hidden="true" /><span>내 코스 {accountCourses.length ? accountCourses.length : ""}</span></button>}
       <div className={styles.account}>
         {auth.authenticated ? <><span className={styles.accountName}><UserRound size={16} aria-hidden="true" />{auth.user?.nickname || "여행자"}</span>
           <button className={styles.accountButton} type="button" onClick={() => void auth.logout().catch(() => setError("로그아웃을 완료하지 못했어요."))}><LogOut size={15} aria-hidden="true" />로그아웃</button></> :
@@ -327,7 +327,7 @@ export default function StoryRoute() {
           onCity={city => {
             update({ intent: { ...state.intent, city, keywords: [], preferences: [], unsupportedConditions: [] }, mode: "manual", intentReady: true });
             setMessage(`선택한 여행 지역: ${city ?? "강원도 전체"}`); setError("");
-            requestAnimationFrame(() => document.getElementById("intent-title")?.focus({ preventScroll: false }));
+            requestAnimationFrame(() => document.getElementById("intent-title")?.focus({ preventScroll: true }));
           }}
           onParse={() => {
             if (!state.query.trim()) { setError("원하는 여행을 한 문장으로 적어주세요."); return; }

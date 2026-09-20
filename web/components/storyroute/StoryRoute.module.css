@@ -208,13 +208,16 @@
   .panel { padding:20px; }
 }
 @media (max-width:767px) {
-  .header { padding:12px 18px; min-height:68px; }
+  .header { flex-wrap:nowrap; gap:8px; padding:10px 14px; min-height:64px; }
   .header .scope { display:none; }
-  .header > button:last-child:not(.brand) { margin-left:auto; }
-  .header { flex-wrap:wrap; }
-  .account { margin-left:auto; }
-  .accountName { max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .brand { flex:1 1 auto; min-width:0; gap:7px; margin-right:auto; font-size:22px; white-space:nowrap; }
+  .brand svg { width:22px; height:22px; flex:none; }
+  .headerIconButton { flex:none; width:42px; min-height:42px; padding:0; }
+  .headerIconButton span { display:none; }
+  .account { flex:none; gap:6px; margin-left:0; }
+  .accountName { display:none; }
   .accountButton { width:42px; padding:0; font-size:0; }
+  .loginButton { min-height:42px; padding:8px 10px; font-size:12px; white-space:nowrap; }
   .header,.main,.footer { padding-inline:18px; }
   .main { padding-top:16px; padding-bottom:100px; }
   .steps { gap:4px; margin-bottom:6px; }
@@ -504,6 +507,9 @@
   .main:has(.mobileDock) { padding-bottom:110px; }
 }
 @media (max-width:359px) {
+  .header { padding-inline:10px; }
+  .brand { font-size:20px; }
+  .loginButton { width:42px; padding:0; font-size:0; }
   .steps button { flex-direction:column; gap:5px; white-space:nowrap; }
   .hero h1 { font-size:29px; }
   .searchModes button { flex-direction:column; gap:5px; font-size:12px; min-height:66px; }
