@@ -377,6 +377,9 @@
 .tripStat span,.tripStat small { display:block; color:var(--sr-muted); font-size:12px; }
 .tripStat strong { display:inline-block; margin-top:5px; color:#173e3b; font-size:18px; letter-spacing:-.4px; }
 .tripStat small { display:inline-block; margin-left:7px; }
+.tripStatButton { width:100%; color:inherit; text-align:left; cursor:pointer; transition:border-color .15s,background .15s,transform .15s; }
+.tripStatButton:hover { border-color:#89b7af; background:#f1f8f6; transform:translateY(-1px); }
+.tripStatButton:focus-visible { outline:3px solid rgba(44,119,113,.2); outline-offset:2px; }
 .nextAction { display:grid; grid-template-columns:auto minmax(0,1fr) minmax(240px,auto); align-items:center; gap:18px; padding:22px; border-radius:18px; background:linear-gradient(125deg,#173f3c,#216d68); color:white; }
 .nextActionIcon { display:grid; place-items:center; width:50px; height:50px; border-radius:15px; background:rgba(255,255,255,.13); }
 .nextActionMain { min-width:0; }
@@ -443,7 +446,11 @@
 .noteEditor[open] .notePreview { display:none; }
 .journeyToast { position:fixed; z-index:1400; left:50%; bottom:26px; display:flex; align-items:center; gap:9px; width:max-content; max-width:min(520px,calc(100vw - 32px)); padding:13px 17px; border:1px solid #8ec4b5; border-radius:13px; color:#f8fffd; background:#174f4a; box-shadow:0 16px 40px rgba(17,53,49,.24); font-size:13px; font-weight:700; line-height:1.45; transform:translateX(-50%); animation:journey-toast-in .2s ease-out; }
 @keyframes journey-toast-in { from { opacity:0; transform:translate(-50%,10px); } to { opacity:1; transform:translate(-50%,0); } }
-.tripSupportGrid { display:grid; grid-template-columns:minmax(320px,.9fr) minmax(0,1.1fr); gap:20px; align-items:stretch; }
+.routeOverview { margin-top:24px; padding-top:24px; border-top:1px solid #e2e9e7; }
+.routeOverviewHeader { margin-bottom:14px; }
+.routeOverviewHeader h2 { margin:5px 0 6px; font-size:22px; letter-spacing:-.6px; }
+.routeOverviewHeader p:last-child { margin:0; }
+.tripSupportGrid { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(320px,.9fr); gap:20px; align-items:stretch; }
 .tripSupportGrid .routePanel { height:100%; margin:0; }
 .tripSupportGrid .mapPanel { position:static; height:100%; }
 .tripSupportGrid .map { height:360px; }
@@ -463,6 +470,11 @@
   .tripStat { padding:12px 9px; text-align:center; }
   .tripStat span { font-size:10px; }
   .tripStat strong { font-size:15px; }
+  .routeOverview { margin-top:18px; padding-top:18px; }
+  .routeOverviewHeader { padding:0 4px; }
+  .routeOverviewHeader h2 { font-size:20px; }
+  .tripSupportGrid { gap:12px; }
+  .tripSupportGrid .map { height:300px; }
   .tripStat small { margin:3px 0 0; font-size:9px; }
   .nextAction { display:flex; align-items:flex-start; flex-wrap:wrap; gap:12px; padding:17px; }
   .nextActionIcon { width:42px; height:42px; border-radius:12px; }

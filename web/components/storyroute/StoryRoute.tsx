@@ -429,14 +429,17 @@ export default function StoryRoute() {
       </> : state.course ? <>
         <div className={styles.pageHeading}><div><p className={styles.eyebrow}>계획에서 출발까지</p><h1 id="trip-page-title" tabIndex={-1}>{title}</h1><p className={styles.muted}>다음 장소, 길찾기, 현장 정보와 방문 기록을 한 화면에서 이어가세요.</p></div><button className={styles.secondary} type="button" disabled={busy} onClick={() => update({ phase: "discover" })}>장소 편집</button></div>
         <JourneyPanel places={state.course.orderedPlaces} candidates={state.places} route={activeRoute}
+          routeOverview={<section id="trip-route-overview" className={styles.routeOverview} aria-labelledby="route-overview-heading">
+            <div className={styles.routeOverviewHeader}><p className={styles.eyebrow}>코스 한눈에 보기</p><h2 id="route-overview-heading">지도와 이동시간을 먼저 확인하세요</h2><p className={styles.muted}>방문 순서를 바꾸기 전에 위치와 자동차 이동을 함께 살펴보세요.</p></div>
+            <div className={styles.tripSupportGrid}>
+              <CourseMap places={state.course.orderedPlaces} route={activeRoute} />
+              <RoutePanel route={activeRoute} places={state.course.orderedPlaces} ready={!!connection?.routeReady} busy={busy} loading={state.busy === "route"} onLoad={() => void checkRoute()} />
+            </div>
+          </section>}
           routeReady={!!connection?.routeReady} routeBusy={state.busy === "route"} busy={busy}
           onSaveCourse={save} onCheckRoute={() => void checkRoute()} onMove={move}
           onDetail={(id, tab = "intro") => setDetail({ id, tab })} onReplace={(currentId, nextId) => void replaceCoursePlace(currentId, nextId)}
           onLoadAlternatives={() => void loadCourseAlternatives()} />
-        <div className={styles.tripSupportGrid}>
-          <RoutePanel route={activeRoute} places={state.course.orderedPlaces} ready={!!connection?.routeReady} busy={busy} loading={state.busy === "route"} onLoad={() => void checkRoute()} />
-          <CourseMap places={state.course.orderedPlaces} route={activeRoute} />
-        </div>
       </> : null}
       {state.phase === "discover" && !!selected.length && <div className={styles.mobileDock}><div><strong>{selected.length}곳 담았어요</strong><small>방문 순서와 길찾기를 확인하세요</small></div>
         <button className={styles.primary} type="button" disabled={busy} onClick={() => void build()}>{state.busy === "course" ? "확인 중…" : "코스 준비"}<ArrowRight size={16} aria-hidden="true" /></button></div>}
