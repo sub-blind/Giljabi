@@ -22,7 +22,6 @@ export function PlaceCard({ place, selected, busy, onPick, onDetail }: {
     <div className={styles.placeBody}>
       <span className={styles.tag}>{categoryLabels[place.category]}</span>
       <h3>{place.name}</h3><p className={styles.address}>{place.address}</p>
-      <div className={styles.evidence}>{place.evidence.slice(0, 3).map(item => <span key={item}>{item}</span>)}</div>
       <div className={styles.cardActions}>
         <button className={styles.secondary} type="button" onClick={onDetail} disabled={busy} aria-label={`${place.name} 상세 보기`}><Info size={16} aria-hidden="true" />상세</button>
         <button className={selected ? styles.primary : styles.teal} type="button" onClick={onPick} disabled={busy} aria-pressed={selected} aria-label={`${place.name} ${selected ? "선택 해제" : "코스에 담기"}`}>

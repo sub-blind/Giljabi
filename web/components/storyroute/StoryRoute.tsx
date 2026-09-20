@@ -2,17 +2,19 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useReducer, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, ArrowRight, ExternalLink, MapPin, Route, Shuffle, Trash2 } from "lucide-react";
+import { ArrowRight, LogIn, LogOut, MapPin, Route, Shuffle, Trash2, UserRound } from "lucide-react";
 import { createCourse, getCourseRoute, getRegions, getStatus, parseIntent, searchPlaces } from "@/lib/api";
 import { loadCourse, saveCourse } from "@/lib/storyroute/storage";
 import { categoryLabels, defaultIntent, type Connection, type Course, type CourseRoute, type Intent, type Phase, type Place, type TravelPhoto } from "@/lib/storyroute/types";
 import { SearchWorkspace, type SearchMode } from "./SearchWorkspace";
 import { PlaceCard } from "./PlaceCard";
-import { PlaceDetailPanel } from "./PlaceDetailPanel";
+import { PlaceDetailPanel, type DetailTab } from "./PlaceDetailPanel";
 import { JourneyPanel } from "./JourneyPanel";
 import { RoutePanel } from "./RoutePanel";
-import { directionsLabel, directionsUrl } from "@/lib/storyroute/navigation";
 import styles from "./StoryRoute.module.css";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { SavedCoursesDialog } from "@/components/auth/SavedCoursesDialog";
+import { deleteAccountCourse, listAccountCourses, saveAccountCourse, type SavedAccountCourse } from "@/lib/accountCourses";
 
 const CourseMap = dynamic(() => import("./CourseMap"), { ssr: false, loading: () => <p className={styles.loading}>지도를 준비하고 있어요…</p> });
 interface TripState {
@@ -32,16 +34,21 @@ function normalize(intent: Intent): Intent {
 }
 
 export default function StoryRoute() {
+  const auth = useAuth();
   const [state, update] = useReducer((current: TripState, patch: Partial<TripState>) => ({ ...current, ...patch }), initial);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [notices, setNotices] = useState<string[]>([]);
-  const [detailId, setDetailId] = useState<string | null>(null);
+  const [detail, setDetail] = useState<{ id: string; tab: DetailTab } | null>(null);
   const [connection, setConnection] = useState<Connection | null>(null);
   const [cities, setCities] = useState<{ code: string; name: string }[]>([]);
   const [hasSaved, setHasSaved] = useState(false);
   const [route, setRoute] = useState<CourseRoute | null>(null);
   const [searchMode, setSearchMode] = useState<SearchMode>("conditions");
+  const [accountCourses, setAccountCourses] = useState<SavedAccountCourse[]>([]);
+  const [savedCoursesOpen, setSavedCoursesOpen] = useState(false);
+  const [accountBusy, setAccountBusy] = useState(false);
+  const [pendingRestore, setPendingRestore] = useState<boolean | null>(null);
   const lock = useRef(false);
   const requestId = useRef(0);
   const pending = useRef<AbortController | null>(null);
@@ -49,7 +56,7 @@ export default function StoryRoute() {
   const activeRoute = route?.orderedPlaceIds.join(".") === state.selectedIds.join(".") ? route : null;
   const selected = state.selectedIds.map(id => state.places.find(place => place.id === id)).filter((place): place is Place => !!place);
   const scope = state.appliedIntent?.city ?? "강원도";
-  const title = state.phase === "create" ? "어디로 떠나볼까요?" : state.phase === "discover" ? `${scope}에서 갈 곳을 골라보세요` : `${scope}, 나의 하루 코스`;
+  const title = state.phase === "create" ? state.intent.city ? `${state.intent.city}에서 어떤 하루를 보낼까요?` : "어디로 떠나볼까요?" : state.phase === "discover" ? `${scope}에서 갈 곳을 골라보세요` : `${scope}, 나의 하루 코스`;
 
   useEffect(() => {
     let active = true;
@@ -59,6 +66,31 @@ export default function StoryRoute() {
     try { setHasSaved(!!loadCourse()); } catch { setMessage("저장 정보를 읽지 못했어요. 새 코스를 만들 수 있어요."); }
     return () => { active = false; controller.abort(); pending.current?.abort(); lock.current = false; requestId.current += 1; };
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("restore") !== "1") return;
+    const saveAccount = params.get("saveAccount") === "1";
+    window.history.replaceState({}, "", window.location.pathname);
+    setPendingRestore(saveAccount);
+    // 로그인 전 저장한 코스를 로그인 완료 후 한 번만 복원한다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (pendingRestore === null || !auth.ready) return;
+    if (pendingRestore && !auth.authenticated) { setError("로그인 상태를 확인하지 못했어요. 코스는 이 브라우저에 보관되어 있어요."); setPendingRestore(null); return; }
+    const saveAccount = pendingRestore;
+    setPendingRestore(null);
+    requestAnimationFrame(() => void restore(saveAccount));
+    // 로그인 상태가 준비된 뒤 보관한 코스를 한 번만 복원한다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingRestore, auth.ready, auth.authenticated]);
+
+  useEffect(() => {
+    if (!auth.authenticated) { setAccountCourses([]); setSavedCoursesOpen(false); return; }
+    void listAccountCourses().then(result => setAccountCourses(result.courses)).catch(() => setError("저장한 코스 목록을 불러오지 못했어요."));
+  }, [auth.authenticated]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -90,9 +122,47 @@ export default function StoryRoute() {
     setMessage(`새 장소로 바꿨어요. ${place.name}`);
   }
 
+  async function replaceCoursePlace(currentId: string, nextId: string) {
+    if (!state.course || !state.appliedIntent || busy) return;
+    const nextIds = state.course.orderedPlaces.map(place => place.id === currentId ? nextId : place.id);
+    await run("course", async (id, signal) => {
+      const course = await createCourse(nextIds, state.appliedIntent!, signal);
+      if (id !== requestId.current) return;
+      const places = [...new Map([...state.places, ...course.orderedPlaces].map(place => [place.id, place])).values()];
+      let stored = true;
+      try { saveCourse(nextIds, state.appliedIntent!); setHasSaved(true); }
+      catch { stored = false; }
+      setRoute(null);
+      update({ selectedIds: nextIds, places, course });
+      setNotices(course.notices);
+      const changed = course.orderedPlaces.find(place => place.id === nextId);
+      setMessage(stored
+        ? `${changed?.name ?? "새 장소"}(으)로 교체하고 이 브라우저의 코스도 바꿨어요.`
+        : `${changed?.name ?? "새 장소"}(으)로 교체했지만 브라우저에는 저장하지 못했어요. 코스 저장을 다시 눌러주세요.`);
+    });
+  }
+
+  async function loadCourseAlternatives() {
+    if (!state.appliedIntent || busy) return;
+    await run("search", async (id, signal) => {
+      const result = await searchPlaces(state.appliedIntent!, 1, signal);
+      if (id !== requestId.current) return;
+      const places = [...new Map([...state.places, ...result.places].map(place => [place.id, place])).values()];
+      update({ places, page: result.page, hasMore: result.hasMore });
+      setNotices(result.notices);
+      setMessage(`${result.places.length}개 장소에서 교체할 후보를 확인했어요.`);
+    });
+  }
+
   async function search(more = false, override?: Intent) {
     let intent: Intent;
-    try { intent = more && state.appliedIntent ? state.appliedIntent : normalize(override ?? state.intent); }
+    try {
+      const source = more && state.appliedIntent ? state.appliedIntent : override ?? state.intent;
+      const visibleConditions = !more && !override && state.mode === "manual"
+        ? { ...source, keywords: [], preferences: [], unsupportedConditions: [] }
+        : source;
+      intent = normalize(visibleConditions);
+    }
     catch (err) { setError((err as Error).message); return; }
     await run("search", async (id, signal) => {
       const result = await searchPlaces(intent, more ? state.page + 1 : 1, signal);
@@ -126,7 +196,7 @@ export default function StoryRoute() {
     setMessage("방문 순서를 바꿨어요.");
   }
 
-  async function restore() {
+  async function restore(saveToAccount = false) {
     let saved;
     try { saved = loadCourse(); if (!saved) { setMessage("저장한 코스가 없어요."); return; } }
     catch (err) { setError((err as Error).message); return; }
@@ -137,12 +207,57 @@ export default function StoryRoute() {
       update({ course, phase: "course", selectedIds: saved.placeIds, places: course.orderedPlaces,
         intent: saved.intent, appliedIntent: saved.intent, intentReady: true, page: 1, hasMore: false });
       setNotices(course.notices); setMessage("저장한 코스의 실제 장소 정보를 다시 확인했어요.");
+      if (saveToAccount && auth.authenticated) {
+        const stored = await saveAccountCourse(courseTitle(saved.intent), saved.placeIds, saved.intent);
+        setAccountCourses(current => [stored, ...current.filter(item => item.id !== stored.id)]);
+        setMessage("로그인을 완료하고 코스를 내 계정에 저장했어요.");
+      }
     });
+  }
+
+  function courseTitle(intent: Intent) {
+    return `${intent.city ?? "강원도"} 하루 코스`;
+  }
+
+  async function openAccountCourse(saved: SavedAccountCourse) {
+    setSavedCoursesOpen(false);
+    await run("restore", async (id, signal) => {
+      const course = await createCourse(saved.placeIds, saved.intent, signal);
+      if (id !== requestId.current) return;
+      setRoute(null);
+      update({ course, phase: "course", selectedIds: saved.placeIds, places: course.orderedPlaces,
+        intent: saved.intent, appliedIntent: saved.intent, intentReady: true, page: 1, hasMore: false });
+      setNotices(course.notices); setMessage("내 계정의 코스를 다시 열었어요.");
+    });
+  }
+
+  async function removeAccountCourse(saved: SavedAccountCourse) {
+    setAccountBusy(true); setError("");
+    try { await deleteAccountCourse(saved.id); setAccountCourses(current => current.filter(item => item.id !== saved.id)); setMessage("저장한 코스를 삭제했어요."); }
+    catch (err) { setError(err instanceof Error ? err.message : "코스를 삭제하지 못했어요."); }
+    finally { setAccountBusy(false); }
   }
 
   function save() {
     if (!state.course || !state.appliedIntent) return false;
-    try { saveCourse(state.selectedIds, state.appliedIntent); setHasSaved(true); setMessage("이 브라우저에 코스를 저장했어요."); return true; }
+    if (accountBusy) { setMessage("코스를 저장하고 있어요."); return false; }
+    try {
+      saveCourse(state.selectedIds, state.appliedIntent); setHasSaved(true);
+      if (!auth.authenticated) {
+        setMessage("코스를 이 브라우저에 저장했어요. 로그인하면 다른 기기에서도 코스를 열 수 있어요.");
+        return true;
+      }
+      const duplicate = accountCourses.some(course =>
+        course.placeIds.join(".") === state.selectedIds.join(".") &&
+        JSON.stringify(course.intent) === JSON.stringify(state.appliedIntent));
+      if (duplicate) { setMessage("이미 내 코스에 저장되어 있어요."); return true; }
+      setAccountBusy(true);
+      void saveAccountCourse(courseTitle(state.appliedIntent), state.selectedIds, state.appliedIntent)
+        .then(stored => { setAccountCourses(current => [stored, ...current]); setMessage("내 계정에 코스를 저장했어요."); })
+        .catch(err => setError(err instanceof Error ? err.message : "내 계정에 코스를 저장하지 못했어요."))
+        .finally(() => setAccountBusy(false));
+      setMessage("내 계정에 코스를 저장하고 있어요."); return true;
+    }
     catch { setError("이 브라우저에서 저장하지 못했어요. 저장 설정과 공간을 확인해주세요."); return false; }
   }
 
@@ -162,7 +277,7 @@ export default function StoryRoute() {
   }
 
   function addCandidate(place: Place) {
-    setDetailId(null);
+    setDetail(null);
     if (state.appliedIntent && (!state.appliedIntent.city || state.appliedIntent.city === place.city) && state.appliedIntent.categories.includes(place.category)) {
       update({ phase: "discover", places: [...new Map([...state.places, place].map(item => [item.id, item])).values()] });
       setMessage(`‘${place.name}’ 후보를 추가했어요. 살펴본 뒤 직접 담아주세요.`);
@@ -183,7 +298,13 @@ export default function StoryRoute() {
     <header className={styles.header}>
       <button className={styles.brand} type="button" onClick={openCreate} disabled={busy}><Route size={25} aria-hidden="true" />StoryRoute<span>.</span></button>
       <span className={styles.scope}><MapPin size={14} aria-hidden="true" />강원도 · 당일</span>
-      {hasSaved && <button className={styles.secondary} type="button" onClick={restore} disabled={busy}>저장한 코스</button>}
+      {hasSaved && <button className={styles.secondary} type="button" onClick={() => void restore()} disabled={busy}>저장한 코스</button>}
+      {auth.authenticated && <button className={styles.secondary} type="button" disabled={busy || accountBusy} onClick={() => setSavedCoursesOpen(true)}>내 코스 {accountCourses.length ? accountCourses.length : ""}</button>}
+      <div className={styles.account}>
+        {auth.authenticated ? <><span className={styles.accountName}><UserRound size={16} aria-hidden="true" />{auth.user?.nickname || "여행자"}</span>
+          <button className={styles.accountButton} type="button" onClick={() => void auth.logout().catch(() => setError("로그아웃을 완료하지 못했어요."))}><LogOut size={15} aria-hidden="true" />로그아웃</button></> :
+          <button className={styles.loginButton} type="button" disabled={!auth.ready} onClick={() => auth.openLogin()}><LogIn size={16} aria-hidden="true" />카카오 로그인</button>}
+      </div>
     </header>
     <main className={styles.main} id="trip-main">
       <nav className={styles.steps} aria-label="여행 만들기 단계">{phases.map((phase, index) => <button type="button" key={phase.id}
@@ -191,6 +312,7 @@ export default function StoryRoute() {
         onClick={() => { if (phase.id === "course") { if (state.course) update({ phase: "course" }); else void build(); } else if (phase.id === "create") openCreate(); else update({ phase: phase.id }); }}><span>{index + 1}</span>{phase.label}</button>)}</nav>
       {connection?.testing && <p className={styles.warning}>기능 검증용 테스트 데이터예요. 실제 관광 장소가 아니에요.</p>}
       {connection && !connection.tourismReady && <p className={styles.warning}>관광 데이터 연결을 준비 중이에요. 지금은 여행 조건을 입력하고 수정할 수 있어요.</p>}
+      {auth.error && <p className={styles.warning}>{auth.error}</p>}
       <div className={styles.status} role="status" aria-live="polite">{message || (busy ? "요청을 처리하고 있어요…" : "")}</div>
       {error && <p className={styles.error} role="alert">{error}</p>}
       {notices.map((item, index) => <p key={index} className={styles.notice}>{item}</p>)}
@@ -202,7 +324,11 @@ export default function StoryRoute() {
           intent={state.intent} intentMode={state.mode} onIntent={intent => update({ intent })} cities={cities}
           busy={busy} parsing={state.busy === "intent"} aiReady={connection ? connection.aiReady : null} photosReady={!!connection?.photosReady}
           hasSelection={!!state.selectedIds.length} onSearch={() => void search()} onPhoto={explore}
-          onCity={city => void search(false, { ...defaultIntent, city })}
+          onCity={city => {
+            update({ intent: { ...state.intent, city, keywords: [], preferences: [], unsupportedConditions: [] }, mode: "manual", intentReady: true });
+            setMessage(`선택한 여행 지역: ${city ?? "강원도 전체"}`); setError("");
+            requestAnimationFrame(() => document.getElementById("intent-title")?.focus({ preventScroll: false }));
+          }}
           onParse={() => {
             if (!state.query.trim()) { setError("원하는 여행을 한 문장으로 적어주세요."); return; }
             void run("intent", async (id, signal) => {
@@ -215,8 +341,8 @@ export default function StoryRoute() {
         <div className={styles.pageHeading}><div><p className={styles.eyebrow}>내가 고르는 작은 여행</p><h1 id="trip-page-title" tabIndex={-1}>{title}</h1><p className={styles.muted}>{scope} · 당일 · {state.appliedIntent?.categories.map(item => categoryLabels[item]).join(" / ")}{state.appliedIntent?.keywords.length ? " · " + state.appliedIntent.keywords.join(", ") : ""}</p></div>
           <button className={styles.secondary} type="button" disabled={busy} onClick={() => { setSearchMode("conditions"); update({ phase: "create", intentReady: true }); }}>조건 수정</button></div>
         <div className={styles.resultsLayout}><section aria-label="조회된 장소 후보">
-          <div className={styles.placeGrid}>{state.places.map(place => <PlaceCard key={place.id} place={place} selected={state.selectedIds.includes(place.id)} busy={busy} onPick={() => pick(place.id)} onDetail={() => setDetailId(place.id)} />)}</div>
-          {!state.places.length && <div className={styles.empty}><h2>담을 장소를 찾지 못했어요</h2><p>키워드를 줄이거나 다른 장소 유형을 골라보세요.</p><button className={styles.teal} type="button" onClick={() => update({ phase: "create" })}>조건 바꾸기</button></div>}
+          <div className={styles.placeGrid}>{state.places.map(place => <PlaceCard key={place.id} place={place} selected={state.selectedIds.includes(place.id)} busy={busy} onPick={() => pick(place.id)} onDetail={() => setDetail({ id: place.id, tab: "intro" })} />)}</div>
+          {!state.places.length && <div className={styles.empty}><h2>담을 장소를 찾지 못했어요</h2><p>다른 지역이나 장소 유형을 골라보세요.</p><button className={styles.teal} type="button" onClick={() => update({ phase: "create" })}>조건 바꾸기</button></div>}
           {state.hasMore && <button className={`${styles.secondary} ${styles.full}`} type="button" disabled={busy} onClick={() => void search(true)}>다른 후보 더 보기</button>}
         </section><aside className={`${styles.panel} ${styles.selectionTray}`} aria-label="선택한 장소"><div className={styles.row}><h2>나의 하루</h2><span className={styles.tag}>{selected.length} / 3곳</span></div>
           {selected.map((place, index) => <div className={styles.selectedStop} key={place.id}><strong>{index + 1}. {place.name}</strong><div className={styles.stopActions}>
@@ -227,23 +353,22 @@ export default function StoryRoute() {
           <button className={`${styles.primary} ${styles.full}`} type="button" disabled={busy || !selected.length} onClick={() => void build()}>{state.busy === "course" ? "실제 장소와 근거 확인 중…" : "내 하루 코스 만들기 →"}</button>
         </aside></div>
       </> : state.course ? <>
-        <div className={styles.pageHeading}><div><p className={styles.eyebrow}>계획에서 출발까지</p><h1 id="trip-page-title" tabIndex={-1}>{title}</h1><p className={styles.muted}>순서를 정한 뒤 여행을 시작하세요. 방문 체크와 메모가 코스에 남아요.</p></div><button className={styles.secondary} type="button" disabled={busy} onClick={() => update({ phase: "discover" })}>장소 편집</button></div>
-        <RoutePanel route={activeRoute} places={state.course.orderedPlaces} ready={!!connection?.routeReady} busy={busy} loading={state.busy === "route"} onLoad={() => void checkRoute()} />
-        <JourneyPanel places={state.course.orderedPlaces} onSaveCourse={save} onDetail={setDetailId} busy={busy} />
-        <div className={styles.courseLayout}><section className={styles.panel} aria-label="방문 순서"><div className={styles.row}><h2>방문 순서</h2><span className={styles.tag}>{state.course.orderedPlaces.length}곳</span></div>
-          {state.course.orderedPlaces.map((place, index) => { const explanation = state.course!.explanations.find(item => item.placeId === place.id); return <article key={place.id} className={styles.courseStop}><span className={styles.stopNumber}>{index + 1}</span><div className={styles.courseBody}>
-            <h3>{place.name}</h3><p className={styles.address}>{place.address}</p><span className={styles.tag}>{explanation?.mode === "ai" ? "소개 원문과 대조한 AI 단서" : "확인된 정보"}</span><p className={styles.reason}>{explanation?.text || place.evidence.join(" · ")}</p>
-            <div className={styles.courseActions}><button className={styles.iconButton} type="button" disabled={busy || index === 0} onClick={() => move(index, -1)} aria-label={`${place.name} 위로`}><ArrowUp size={18} /></button><button className={styles.iconButton} type="button" disabled={busy || index === state.selectedIds.length - 1} onClick={() => move(index, 1)} aria-label={`${place.name} 아래로`}><ArrowDown size={18} /></button>
-              <button className={styles.textButton} type="button" disabled={busy} onClick={() => setDetailId(place.id)}>상세</button>
-              <a className={styles.secondary} href={directionsUrl(place, state.course!.orderedPlaces[index - 1])} target="_blank" rel="noopener noreferrer">{directionsLabel(place, state.course!.orderedPlaces[index - 1])}<ExternalLink size={14} aria-hidden="true" /></a></div>
-          </div></article>; })}
-          <button className={`${styles.primary} ${styles.full}`} type="button" disabled={busy} onClick={save}>이 브라우저에 코스 저장</button><p className={styles.small}>장소 ID·순서·조건만 저장해요. 다른 기기와 동기화되지 않아요.</p>
-        </section><CourseMap places={state.course.orderedPlaces} route={activeRoute} /></div>
+        <div className={styles.pageHeading}><div><p className={styles.eyebrow}>계획에서 출발까지</p><h1 id="trip-page-title" tabIndex={-1}>{title}</h1><p className={styles.muted}>다음 장소, 길찾기, 현장 정보와 방문 기록을 한 화면에서 이어가세요.</p></div><button className={styles.secondary} type="button" disabled={busy} onClick={() => update({ phase: "discover" })}>장소 편집</button></div>
+        <JourneyPanel places={state.course.orderedPlaces} candidates={state.places} route={activeRoute}
+          routeReady={!!connection?.routeReady} routeBusy={state.busy === "route"} busy={busy}
+          onSaveCourse={save} onCheckRoute={() => void checkRoute()} onMove={move}
+          onDetail={(id, tab = "intro") => setDetail({ id, tab })} onReplace={(currentId, nextId) => void replaceCoursePlace(currentId, nextId)}
+          onLoadAlternatives={() => void loadCourseAlternatives()} />
+        <div className={styles.tripSupportGrid}>
+          <RoutePanel route={activeRoute} places={state.course.orderedPlaces} ready={!!connection?.routeReady} busy={busy} loading={state.busy === "route"} onLoad={() => void checkRoute()} />
+          <CourseMap places={state.course.orderedPlaces} route={activeRoute} />
+        </div>
       </> : null}
       {state.phase === "discover" && !!selected.length && <div className={styles.mobileDock}><div><strong>{selected.length}곳 담았어요</strong><small>방문 순서와 길찾기를 확인하세요</small></div>
         <button className={styles.primary} type="button" disabled={busy} onClick={() => void build()}>{state.busy === "course" ? "확인 중…" : "코스 준비"}<ArrowRight size={16} aria-hidden="true" /></button></div>}
     </main>
     <footer className={styles.footer}><strong>StoryRoute.</strong><span>당신의 순서로 만드는 하루</span><small>관광 콘텐츠 출처: ⓒ한국관광공사 · 지도: © OpenStreetMap contributors</small></footer>
-    {detailId && <PlaceDetailPanel key={detailId} id={detailId} onClose={() => setDetailId(null)} onCandidate={addCandidate} />}
+    {detail && <PlaceDetailPanel key={`${detail.id}-${detail.tab}`} id={detail.id} initialTab={detail.tab} onClose={() => setDetail(null)} onCandidate={addCandidate} />}
+    {savedCoursesOpen && <SavedCoursesDialog courses={accountCourses} busy={accountBusy || busy} onClose={() => setSavedCoursesOpen(false)} onOpen={saved => void openAccountCourse(saved)} onDelete={saved => void removeAccountCourse(saved)} />}
   </div>;
 }

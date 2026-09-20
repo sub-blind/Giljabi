@@ -30,6 +30,8 @@ async def provider(operation, *, extra_params):
         return envelope([{"code": "1", "name": "강릉시"}, {"code": "2", "name": "춘천시"}] if extra_params.get("areaCode") else [{"code": "54", "name": "강원특별자치도"}])
     if operation == KorServiceOp.DETAIL_COMMON:
         return envelope([row for row in ROWS if row["contentid"] == extra_params["contentId"]])
+    if operation == KorServiceOp.DETAIL_INTRO:
+        return envelope([])
     assert extra_params["areaCode"] == "54" and extra_params["sigunguCode"] == "1"
     return envelope(ROWS)
 
@@ -100,6 +102,28 @@ def test_malformed_fields_are_not_rendered_as_facts():
         place = api.get("/api/v1/day-trip/places/12_1001").json()
         assert place["latitude"] is None and place["longitude"] is None and place["imageUrl"] is None
         assert place["overview"] == "제공된 소개"
+
+
+def test_place_detail_includes_only_sanitized_visit_information():
+    async def with_visit_info(operation, *, extra_params):
+        if operation == KorServiceOp.AREA_CODE_LIST:
+            return await provider(operation, extra_params=extra_params)
+        if operation == KorServiceOp.DETAIL_COMMON:
+            return envelope([{**ROWS[1], "tel": "033-123-4567<script>삭제</script>"}])
+        if operation == KorServiceOp.DETAIL_INTRO:
+            assert extra_params["contentTypeId"] == "39"
+            return envelope([{"infocenterfood": "033-123-4567", "opentimefood": "<b>10:00~20:00</b>",
+                              "restdatefood": "매주 월요일", "parkingfood": "주차 가능",
+                              "firstmenu": "감자옹심이", "treatmenu": ""}])
+        return await provider(operation, extra_params=extra_params)
+
+    with client(DayTripService(offline_settings(), with_visit_info)) as api:
+        response = api.get("/api/v1/day-trip/places/39_1002")
+        assert response.status_code == 200
+        info = {item["label"]: item["value"] for item in response.json()["visitInfo"]}
+        assert info == {"전화": "033-123-4567", "영업시간": "10:00~20:00",
+                        "휴무일": "매주 월요일", "주차": "주차 가능", "대표메뉴": "감자옹심이"}
+        assert "<" not in json.dumps(info, ensure_ascii=False)
 
 
 @pytest.mark.parametrize("bad", [False, True])

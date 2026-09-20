@@ -1379,6 +1379,13 @@
             "type": "string",
             "title": "Overview"
           },
+          "visitInfo": {
+            "items": {
+              "$ref": "#/components/schemas/VisitInfo"
+            },
+            "type": "array",
+            "title": "Visitinfo"
+          },
           "evidence": {
             "items": {
               "type": "string"
@@ -1954,6 +1961,30 @@
           "source"
         ],
         "title": "TravelStory"
+      },
+      "VisitInfo": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "value": {
+            "type": "string",
+            "title": "Value"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "value"
+        ],
+        "title": "VisitInfo"
       }
     }
   }
