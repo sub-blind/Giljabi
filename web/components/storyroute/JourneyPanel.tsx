@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  Accessibility, ArrowDown, ArrowUp, Check, ExternalLink, Headphones,
-  Info, MapPin, Navigation, Play, RefreshCw, Route, Save,
+  Accessibility, ArrowDown, ArrowUp, Check, CheckCircle2, ExternalLink, Headphones,
+  Info, MapPin, Navigation, Play, RefreshCw, Route, Save, StickyNote,
 } from "lucide-react";
 import { loadJourney, saveJourney, type Journey } from "@/lib/storyroute/journey";
 import { directionsLabel, directionsUrl } from "@/lib/storyroute/navigation";
@@ -35,6 +35,7 @@ export function JourneyPanel({ places, candidates, route, routeReady, routeBusy,
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [replacementFor, setReplacementFor] = useState<string | null>(null);
   const previousIds = useRef<string[]>(places.map(place => place.id));
+  const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // 순서 변경은 같은 기록을 쓰고, 장소 교체는 남아 있는 장소의 방문·메모만 옮긴다.
   const identity = places.map(place => place.id).sort().join(".");
 
@@ -70,12 +71,22 @@ export function JourneyPanel({ places, candidates, route, routeReady, routeBusy,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [identity]);
 
+  useEffect(() => () => {
+    if (noticeTimer.current) clearTimeout(noticeTimer.current);
+  }, []);
+
+  function notify(notice: string) {
+    setMessage(notice);
+    if (noticeTimer.current) clearTimeout(noticeTimer.current);
+    noticeTimer.current = setTimeout(() => setMessage(""), 3200);
+  }
+
   function persist(next: Journey, notice: string) {
     try {
       saveJourney(next);
       setJourney(next);
       setError("");
-      setMessage(notice);
+      notify(notice);
     } catch {
       setError("여행 기록을 저장하지 못했어요. 브라우저 저장 설정과 공간을 확인해주세요.");
     }
@@ -85,6 +96,11 @@ export function JourneyPanel({ places, candidates, route, routeReady, routeBusy,
     if (!onSaveCourse()) return;
     persist({ version: 1, placeIds: places.map(place => place.id), startedAt: new Date().toISOString(), visitedIds: [], notes: {} },
       "여행을 시작했어요. 다음 장소와 필요한 현장 정보를 여기에서 확인하세요.");
+  }
+
+  function saveCourseWithFeedback() {
+    if (!onSaveCourse()) return;
+    notify("코스를 저장했어요. 상단의 저장한 코스에서 다시 열 수 있어요.");
   }
 
   const visited = new Set(journey?.visitedIds ?? []);
@@ -110,7 +126,7 @@ export function JourneyPanel({ places, candidates, route, routeReady, routeBusy,
       <div><p className={styles.eyebrow}>오늘의 {city} 여행</p>
         <h2 id="journey-heading">{completed ? "오늘의 여행을 완주했어요" : journey && next ? `다음은 ${next.name}` : "이 코스로 바로 출발할까요?"}</h2>
         <p className={styles.muted}>{journey ? "길찾기와 현장 정보를 확인하고, 다녀온 장소만 체크해보세요." : "저장만 하는 계획이 아니라 여행 중 계속 꺼내 보는 하루 안내판이에요."}</p></div>
-      <button className={styles.secondary} type="button" disabled={busy} onClick={() => onSaveCourse()}><Save size={16} aria-hidden="true" />코스 저장</button>
+      <button className={styles.secondary} type="button" disabled={busy} onClick={saveCourseWithFeedback}><Save size={16} aria-hidden="true" />코스 저장</button>
     </div>
 
     <div className={styles.tripStats} aria-label="여행 요약">
@@ -150,6 +166,7 @@ export function JourneyPanel({ places, candidates, route, routeReady, routeBusy,
       const isVisited = visited.has(place.id);
       const isCurrent = !!journey && place.id === next?.id;
       const options = alternatives(place);
+      const savedNote = journey?.notes[place.id]?.trim() ?? "";
       const explanationStatus = isVisited ? "방문 완료" : isCurrent ? "지금 갈 곳" : journey ? "예정" : `${index + 1}번째`;
       return <li key={place.id} className={`${styles.timelineStop} ${isVisited ? styles.timelineStopVisited : ""} ${isCurrent ? styles.timelineStopCurrent : ""}`}>
         <div className={styles.timelineRail}><span>{isVisited ? <Check size={16} aria-hidden="true" /> : index + 1}</span></div>
@@ -173,7 +190,7 @@ export function JourneyPanel({ places, candidates, route, routeReady, routeBusy,
             <strong>{place.city}의 다른 {categoryLabels[place.category]}</strong>
             {options.length ? <div className={styles.replacementGrid}>{options.map(option => <button key={option.id} type="button" disabled={busy} onClick={() => { setReplacementFor(null); onReplace(place.id, option.id); }}><span>{option.name}</span><small>{option.address}</small></button>)}</div> : <div className={styles.noReplacement}><p>아직 불러온 같은 지역·유형의 대체 장소가 없어요.</p><button className={styles.secondary} type="button" disabled={busy} onClick={onLoadAlternatives}><RefreshCw size={14} aria-hidden="true" />대체 후보 불러오기</button></div>}
           </div>}
-          {journey && <details className={styles.noteEditor}><summary>내 여행 메모 {journey.notes[place.id] ? "보기·수정" : "남기기"}</summary>
+          {journey && <details className={`${styles.noteEditor} ${savedNote ? styles.noteEditorSaved : styles.noteEditorEmpty}`}><summary><span className={styles.noteSummaryHeader}><span className={styles.noteSummaryTitle}><StickyNote size={15} aria-hidden="true" />{savedNote ? "내 여행 메모" : "여행 메모 남기기"}</span>{savedNote ? <span className={styles.noteSavedBadge}><Check size={13} aria-hidden="true" />저장됨</span> : <span className={styles.noteAddMark}>+</span>}</span>{savedNote && <span className={styles.notePreview}>{savedNote}</span>}</summary>
             <label className={styles.fieldLabel} htmlFor={`note-${place.id}`}>{place.name} 여행 메모</label>
             <textarea id={`note-${place.id}`} value={drafts[place.id] ?? ""} maxLength={500} disabled={busy} placeholder="기억할 장면이나 다음에 참고할 내용을 적어두세요."
               onChange={event => setDrafts({ ...drafts, [place.id]: event.target.value })} />
@@ -184,7 +201,7 @@ export function JourneyPanel({ places, candidates, route, routeReady, routeBusy,
     })}</ol>
 
     {error && <p className={styles.error} role="alert">{error}</p>}
-    {message && <p className={styles.small} role="status">{message}</p>}
+    {message && <div className={styles.journeyToast} role="status"><CheckCircle2 size={19} aria-hidden="true" /><span>{message}</span></div>}
     <p className={styles.small}>방문 완료와 메모는 이 브라우저에 저장돼요. 실제 도로 상황과 출발지는 카카오맵에서 확인하세요.</p>
     {journey && next && <div className={styles.mobileDock}><div><strong>다음 · {next.name}</strong><small>{count} / {places.length}곳 방문</small></div>
       <a className={styles.primary} href={directionsUrl(next, previous)} target="_blank" rel="noopener noreferrer">카카오맵<ExternalLink size={14} aria-hidden="true" /></a></div>}

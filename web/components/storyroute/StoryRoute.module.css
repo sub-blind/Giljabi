@@ -421,7 +421,19 @@
 .replacementGrid span,.replacementGrid small { display:block; overflow-wrap:anywhere; }
 .replacementGrid span { font-size:12px; font-weight:700; line-height:1.45; }
 .replacementGrid small { margin-top:4px; color:var(--sr-muted); font-size:10px; line-height:1.45; }
-.timelineBody .noteEditor { margin-top:10px; }
+.timelineBody .noteEditor { margin-top:12px; padding:0 12px 10px; border:1px dashed #cfdcd9; border-radius:12px; background:#fbfcfc; }
+.timelineBody .noteEditor[open] { border-style:solid; background:white; }
+.timelineBody .noteEditor summary { display:block; padding:11px 0 8px; list-style:none; color:#315e59; font-weight:750; }
+.timelineBody .noteEditor summary::-webkit-details-marker { display:none; }
+.noteSummaryHeader { display:flex; align-items:center; gap:10px; }
+.noteSummaryTitle { display:inline-flex; align-items:center; gap:7px; min-width:0; }
+.noteSavedBadge { display:inline-flex; align-items:center; gap:4px; margin-left:auto; padding:4px 7px; border-radius:999px; color:#116158; background:#dff2ec; font-size:10px; white-space:nowrap; }
+.noteEditorSaved { border-style:solid!important; border-color:#9bc9bc!important; background:#eff8f5!important; }
+.noteAddMark { margin-left:auto; color:#6c8581; font-size:17px; font-weight:500; }
+.notePreview { display:-webkit-box; overflow:hidden; -webkit-box-orient:vertical; -webkit-line-clamp:2; margin:7px 0 1px 22px; color:#56716d; font-size:11px; font-weight:500; line-height:1.55; overflow-wrap:anywhere; }
+.noteEditor[open] .notePreview { display:none; }
+.journeyToast { position:fixed; z-index:1400; left:50%; bottom:26px; display:flex; align-items:center; gap:9px; width:max-content; max-width:min(520px,calc(100vw - 32px)); padding:13px 17px; border:1px solid #8ec4b5; border-radius:13px; color:#f8fffd; background:#174f4a; box-shadow:0 16px 40px rgba(17,53,49,.24); font-size:13px; font-weight:700; line-height:1.45; transform:translateX(-50%); animation:journey-toast-in .2s ease-out; }
+@keyframes journey-toast-in { from { opacity:0; transform:translate(-50%,10px); } to { opacity:1; transform:translate(-50%,0); } }
 .tripSupportGrid { display:grid; grid-template-columns:minmax(320px,.9fr) minmax(0,1.1fr); gap:20px; align-items:stretch; }
 .tripSupportGrid .routePanel { height:100%; margin:0; }
 .tripSupportGrid .mapPanel { position:static; height:100%; }
@@ -469,6 +481,8 @@
   .stopInfoActions .textButton { justify-content:center; min-width:0; min-height:40px; padding:7px 4px; border:1px solid #dce6e3; border-radius:10px; background:#fff; font-size:11px; text-decoration:none; }
   .stopManagementActions { gap:8px 16px; }
   .stopManagementActions .textButton { min-height:34px; padding:3px 0; font-size:11px; }
+  .timelineBody .noteEditor { margin-top:11px; }
+  .journeyToast { bottom:calc(84px + env(safe-area-inset-bottom)); width:calc(100vw - 28px); justify-content:center; padding:12px 14px; font-size:12px; }
   .replacementGrid { grid-template-columns:minmax(0,1fr); }
   .noReplacement { align-items:stretch; flex-direction:column; }
   .tripSupportGrid .map { height:330px; }
