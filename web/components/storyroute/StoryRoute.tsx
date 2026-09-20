@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useReducer, useRef, useState } from "react";
-import { ArrowRight, Bookmark, LibraryBig, LogIn, LogOut, MapPin, Route, Shuffle, Trash2, UserRound } from "lucide-react";
+import { ArrowRight, Bookmark, LibraryBig, LogIn, LogOut, MapPin, RefreshCw, Route, Shuffle, Trash2, UserRound } from "lucide-react";
 import { createCourse, getCourseRoute, getRegions, getStatus, parseIntent, searchPlaces } from "@/lib/api";
 import { loadCourse, saveCourse } from "@/lib/storyroute/storage";
 import { categoryLabels, defaultIntent, type Connection, type Course, type CourseRoute, type Intent, type Phase, type Place, type TravelPhoto } from "@/lib/storyroute/types";
@@ -15,6 +15,7 @@ import styles from "./StoryRoute.module.css";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { SavedCoursesDialog } from "@/components/auth/SavedCoursesDialog";
 import { deleteAccountCourse, listAccountCourses, saveAccountCourse, type SavedAccountCourse } from "@/lib/accountCourses";
+import { gangwonMapRegions } from "@/data/gangwonMap";
 
 const CourseMap = dynamic(() => import("./CourseMap"), { ssr: false, loading: () => <p className={styles.loading}>지도를 준비하고 있어요…</p> });
 interface TripState {
@@ -41,7 +42,9 @@ export default function StoryRoute() {
   const [notices, setNotices] = useState<string[]>([]);
   const [detail, setDetail] = useState<{ id: string; tab: DetailTab } | null>(null);
   const [connection, setConnection] = useState<Connection | null>(null);
-  const [cities, setCities] = useState<{ code: string; name: string }[]>([]);
+  const [cities, setCities] = useState<{ code: string; name: string }[]>(() => gangwonMapRegions.map(({ code, name }) => ({ code, name })));
+  const [connectionState, setConnectionState] = useState<"connecting" | "ready" | "error">("connecting");
+  const [connectionAttempt, setConnectionAttempt] = useState(0);
   const [hasSaved, setHasSaved] = useState(false);
   const [route, setRoute] = useState<CourseRoute | null>(null);
   const [searchMode, setSearchMode] = useState<SearchMode>("conditions");
@@ -59,13 +62,37 @@ export default function StoryRoute() {
   const title = state.phase === "create" ? state.intent.city ? `${state.intent.city}에서 어떤 하루를 보낼까요?` : "어디로 떠나볼까요?" : state.phase === "discover" ? `${scope}에서 갈 곳을 골라보세요` : `${scope}, 나의 하루 코스`;
 
   useEffect(() => {
+    try { setHasSaved(!!loadCourse()); } catch { setMessage("저장 정보를 읽지 못했어요. 새 코스를 만들 수 있어요."); }
+    return () => { pending.current?.abort(); lock.current = false; requestId.current += 1; };
+  }, []);
+
+  useEffect(() => {
     let active = true;
     const controller = new AbortController();
-    getStatus(controller.signal).then(value => { if (active) setConnection(value); }).catch(() => { if (active) setError("서버 연결을 확인해주세요. 직접 조건을 편집할 수 있어요."); });
-    getRegions(controller.signal).then(value => { if (active) setCities(value.cities); }).catch(() => { if (active) setMessage("시·군 목록을 불러오지 못했어요. 강원도 전체로 찾거나 여행 문장에 지역을 적어주세요."); });
-    try { setHasSaved(!!loadCourse()); } catch { setMessage("저장 정보를 읽지 못했어요. 새 코스를 만들 수 있어요."); }
-    return () => { active = false; controller.abort(); pending.current?.abort(); lock.current = false; requestId.current += 1; };
-  }, []);
+    setConnection(null);
+    setConnectionState("connecting");
+    async function connect() {
+      // 시군 목록은 지도에 포함된 기본 목록을 먼저 쓰고 별도로 갱신한다.
+      // 외부 관광 API가 늦어져도 서버 상태 확인과 검색 버튼 활성화를 막지 않는다.
+      void getRegions(controller.signal).then(value => {
+        if (active) setCities(value.cities);
+      }).catch(() => undefined);
+      for (let attempt = 0; attempt < 2 && active; attempt += 1) {
+        const statusResult = await getStatus(controller.signal).then(value => ({ ok: true as const, value })).catch(() => ({ ok: false as const }));
+        if (!active) return;
+        if (statusResult.ok) {
+          setConnection(statusResult.value);
+          setConnectionState("ready");
+          if (attempt > 0) setMessage("여행 서버에 다시 연결했어요.");
+          return;
+        }
+        if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 1500));
+      }
+      if (active) setConnectionState("error");
+    }
+    void connect();
+    return () => { active = false; controller.abort(); };
+  }, [connectionAttempt]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -312,6 +339,8 @@ export default function StoryRoute() {
         onClick={() => { if (phase.id === "course") { if (state.course) update({ phase: "course" }); else void build(); } else if (phase.id === "create") openCreate(); else update({ phase: phase.id }); }}><span>{index + 1}</span>{phase.label}</button>)}</nav>
       {connection?.testing && <p className={styles.warning}>기능 검증용 테스트 데이터예요. 실제 관광 장소가 아니에요.</p>}
       {connection && !connection.tourismReady && <p className={styles.warning}>관광 데이터 연결을 준비 중이에요. 지금은 여행 조건을 입력하고 수정할 수 있어요.</p>}
+      {connectionState === "connecting" && <div className={styles.connectionNotice} role="status" aria-live="polite"><RefreshCw className={styles.connectionSpinner} size={18} aria-hidden="true" /><div><strong>여행 정보를 준비하고 있어요</strong><span>첫 접속은 서버를 시작하느라 최대 1분 정도 걸릴 수 있어요. 연결되면 검색 버튼이 자동으로 열려요.</span></div></div>}
+      {connectionState === "error" && <div className={styles.connectionError} role="alert"><div><strong>여행 서버에 연결하지 못했어요</strong><span>네트워크를 확인한 뒤 다시 연결해주세요. 선택한 조건은 그대로 유지돼요.</span></div><button className={styles.secondary} type="button" disabled={busy} onClick={() => setConnectionAttempt(value => value + 1)}><RefreshCw size={15} aria-hidden="true" />다시 연결</button></div>}
       {auth.error && <p className={styles.warning}>{auth.error}</p>}
       <div className={styles.status} role="status" aria-live="polite">{message || (busy ? "요청을 처리하고 있어요…" : "")}</div>
       {error && <p className={styles.error} role="alert">{error}</p>}
@@ -322,7 +351,8 @@ export default function StoryRoute() {
           <p className={styles.heroText}>마음에 드는 곳을 최대 세 곳 담아, 나만의 여행을 이어가세요.</p></section>
         <SearchWorkspace mode={searchMode} onMode={setSearchMode} query={state.query} onQuery={query => update({ query })}
           intent={state.intent} intentMode={state.mode} onIntent={intent => update({ intent })} cities={cities}
-          busy={busy} parsing={state.busy === "intent"} aiReady={connection ? connection.aiReady : null} photosReady={!!connection?.photosReady}
+          busy={busy} parsing={state.busy === "intent"} connectionState={connectionState} tourismReady={connectionState === "ready" && !!connection?.tourismReady}
+          aiReady={connectionState === "ready" && connection ? connection.aiReady : null} photosReady={connectionState === "ready" && !!connection?.photosReady}
           hasSelection={!!state.selectedIds.length} onSearch={() => void search()} onPhoto={explore}
           onCity={city => {
             update({ intent: { ...state.intent, city, keywords: [], preferences: [], unsupportedConditions: [] }, mode: "manual", intentReady: true });

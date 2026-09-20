@@ -64,8 +64,9 @@ function PhotoCollection({ photos, busy, onExplore }: {
   </>;
 }
 
-export function PhotoExplorer({ cities, ready, busy: tripBusy, onExplore }: {
-  cities: { code: string; name: string }[]; ready: boolean; busy: boolean; onExplore: (photo: TravelPhoto) => void;
+export function PhotoExplorer({ cities, ready, connectionState, busy: tripBusy, onExplore }: {
+  cities: { code: string; name: string }[]; ready: boolean; connectionState: "connecting" | "ready" | "error";
+  busy: boolean; onExplore: (photo: TravelPhoto) => void;
 }) {
   const [city, setCity] = useState("");
   const [keyword, setKeyword] = useState("");
@@ -100,7 +101,10 @@ export function PhotoExplorer({ cities, ready, busy: tripBusy, onExplore }: {
       <div><label htmlFor="photo-keyword">사진 키워드</label><input id="photo-keyword" className={styles.textInput} value={keyword} maxLength={40} placeholder="예: 박물관, 바다" disabled={busy} onChange={event => setKeyword(event.target.value)} /></div>
       <button type="submit" className={styles.primary} disabled={busy || !ready}>{busy ? "사진 조회 중…" : "사진 둘러보기"}</button>
     </form>
-    {!ready && <p className={styles.small}>관광사진 연결을 준비 중이에요. 위에서 여행 조건으로 장소를 찾을 수 있어요.</p>}
+    {!ready && <p className={styles.small}>{connectionState === "connecting"
+      ? "여행 정보를 준비하고 있어요. 연결되면 사진 조회 버튼이 자동으로 열려요."
+      : connectionState === "error" ? "서버에 다시 연결한 뒤 관광사진을 볼 수 있어요."
+      : "관광사진 기능을 준비 중이에요. 지도로 장소를 찾아주세요."}</p>}
     {error && <p className={styles.error} role="alert">{error}{result ? " 이전에 조회한 사진은 유지했어요." : ""}</p>}
     {result && <>
       <p className={styles.small}>조회 조건: {result.appliedCity ?? "강원도 전체"} · {result.appliedKeyword} · {new Date(result.retrievedAt).toLocaleString("ko-KR")}</p>

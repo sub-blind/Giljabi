@@ -7,7 +7,9 @@ async function request<T>(path: string, data?: unknown, signal?: AbortSignal): P
   const abort = () => controller.abort();
   signal?.addEventListener("abort", abort, { once: true });
   if (signal?.aborted) controller.abort();
-  const timer = setTimeout(abort, 35000);
+  // Render 무료 인스턴스가 잠든 첫 요청은 다시 뜨는 데 약 1분이 걸릴 수 있다.
+  // 브라우저가 그보다 먼저 요청을 끊으면 서버가 깨어나도 화면이 연결 상태를 복구하지 못한다.
+  const timer = setTimeout(abort, 75000);
   try {
     const response = await fetch(prefix + path, {
       method: data === undefined ? "GET" : "POST", cache: "no-store",
@@ -18,7 +20,7 @@ async function request<T>(path: string, data?: unknown, signal?: AbortSignal): P
     if (!response.ok) throw new Error(result.error?.message ?? "입력 조건을 확인하고 다시 시도해주세요.");
     return result as T;
   } catch (error) {
-    if (controller.signal.aborted) throw new Error("요청이 중단됐거나 응답이 늦어지고 있어요. 다시 시도해주세요.");
+    if (controller.signal.aborted) throw new Error("여행 정보를 준비하는 데 시간이 오래 걸리고 있어요. 잠시 뒤 다시 시도해주세요.");
     if (error instanceof TypeError || error instanceof SyntaxError) throw new Error("서버 연결을 확인하고 다시 시도해주세요.");
     throw error;
   } finally {

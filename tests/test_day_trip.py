@@ -147,6 +147,19 @@ def test_batched_ai_evidence_is_called_once_and_checked_against_source(bad):
     asyncio.run(ai_client.aclose())
 
 
+def test_course_without_preferences_does_not_wait_for_ai_evidence():
+    def unexpected_ai_call(_request):
+        raise AssertionError("선호 조건이 없는 지도 코스에서 AI를 호출하면 안 됩니다.")
+
+    ai_client = httpx.AsyncClient(transport=httpx.MockTransport(unexpected_ai_call))
+    service = DayTripService(offline_settings(openai_api_key="test-only-key", openai_model="test-model"), provider, ai_client)
+    intent = {**INTENT, "keywords": [], "preferences": []}
+    with client(service) as api:
+        result = api.post("/api/v1/day-trip/course", json={"placeIds": ["12_1001", "39_1002"], "intent": intent}).json()
+        assert all(item["mode"] == "facts" for item in result["explanations"])
+    asyncio.run(ai_client.aclose())
+
+
 def test_provider_failure_and_unsupported_input_are_korean():
     async def failed(*args, **kwargs):
         raise TourApiError("관광 정보를 불러오지 못했어요.", status_code=502)

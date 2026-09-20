@@ -19,6 +19,12 @@
 .warning { background:#fff0d9; color:#795727; }
 .notice { background:#eff5f5; color:#45664c; }
 .error { background:#ffe8e0; color:#8b3928; }
+.connectionNotice,.connectionError { display:flex; align-items:center; gap:12px; margin:12px 0 18px; padding:14px 16px; border:1px solid #cbd9f8; border-radius:12px; background:#edf2ff; color:#244d9c; font-size:13px; }
+.connectionNotice > div,.connectionError > div { display:flex; flex-direction:column; gap:4px; flex:1; line-height:1.55; }
+.connectionNotice strong,.connectionError strong { color:var(--sr-ink); }
+.connectionError { justify-content:space-between; border-color:#f1c9bd; background:#fff1ec; color:#7d493d; }
+.connectionSpinner { flex:none; animation:connection-spin 1.2s linear infinite; }
+@keyframes connection-spin { to { transform:rotate(360deg); } }
 .eyebrow { color:var(--sr-teal); font-size:12px; letter-spacing:1px; }
 .tags,.categories,.examples { display:flex; flex-wrap:wrap; gap:8px; }
 .tags { margin-top:24px; }
