@@ -1,6 +1,6 @@
 # 카카오 인증 API와 PostgreSQL 연결
 
-2026년 9월 19일 기준. 회원·인증 세션의 서버 저장을 구현했다. 프런트 로그인 화면과 회원별 코스·방문 기록 저장은 이후 단계다.
+2026년 9월 20일 기준. 회원·인증 세션 저장, 프런트 카카오 로그인 상태, 계정별 코스 생성·목록·조회·삭제를 구현했다. 방문 체크와 메모는 현재 브라우저에만 저장한다.
 
 ## 처리 흐름
 
@@ -38,6 +38,10 @@ sequenceDiagram
 | GET `/api/v1/auth/session` | `ok`, `authenticated`, `hasRefreshToken`, `user` 반환. 미인증은 200과 `authenticated: false`. `hasRefreshToken`은 쿠키 존재 여부이며 유효성 판정이 아님 |
 | POST `/api/v1/auth/refresh` | 세션 행 잠금·만료와 폐기 및 해시 검증·기존 세션 폐기·새 세션 저장 후 쿠키 갱신 |
 | POST `/api/v1/auth/logout` | 유효한 로그인 유지용 쿠키에 해당하는 세션을 폐기하고 인증 쿠키 삭제 |
+| POST `/api/v1/account/courses` | 로그인 사용자의 코스 제목·조건·장소 ID와 순서를 저장 |
+| GET `/api/v1/account/courses` | 로그인 사용자의 최근 코스 최대 20개 조회 |
+| GET `/api/v1/account/courses/{course_id}` | 소유권을 확인한 계정 코스 단건 조회 |
+| DELETE `/api/v1/account/courses/{course_id}` | 소유권을 확인한 계정 코스와 장소 삭제 |
 
 회원 응답은 `userId`, `provider`, `nickname`이다. `userId`는 내부 UUID 문자열이며 외부 카카오 ID를 프런트에 전달하지 않는다. 이메일 필드는 반환하지 않는다.
 
@@ -55,7 +59,7 @@ sequenceDiagram
 .\.venv\Scripts\python.exe -X utf8 -m alembic upgrade head
 ```
 
-실제 카카오 로그인 후 같은 브라우저에서 백엔드의 `/api/v1/auth/me`를 열어 회원 응답을 확인한다. 콜백의 성공 리다이렉트만으로 프런트 연동·코스 저장이 끝났다고 판단하지 않는다.
+실제 카카오 로그인 후 프런트 헤더의 닉네임·내 코스·로그아웃과 백엔드 `/api/v1/auth/me`의 회원 응답을 함께 확인한다. 계정 코스를 저장하고 목록에서 다시 열 때 관광 API로 장소를 재조회하는 흐름까지 확인한다. 콜백의 성공 리다이렉트만으로 프런트 연동·코스 저장이 끝났다고 판단하지 않는다.
 
 ## 자동 검증
 

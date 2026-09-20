@@ -88,6 +88,12 @@ class EvidenceBatch(StrictModel):
     items: list[Evidence]
 
 
+class VisitInfo(StrictModel):
+    key: str
+    label: str
+    value: str
+
+
 class Place(StrictModel):
     """관광 API 응답을 화면용 필드로 정리한 실제 장소."""
     id: str
@@ -99,6 +105,7 @@ class Place(StrictModel):
     latitude: float | None
     longitude: float | None
     overview: str
+    visitInfo: list[VisitInfo] = Field(default_factory=list)
     evidence: list[str]
     source: Literal["tourapi"]
     retrievedAt: str
@@ -164,6 +171,31 @@ def clean(value, limit=3000):
     text = re.sub(r"(?is)<(script|style)\b.*?</\1>", "", text)
     text = re.sub(r"<[^>]+>", " ", text)
     return re.sub(r"\s+", " ", text).strip()[:limit]
+
+
+VISIT_INFO_FIELDS = {
+    "attraction": [("infocenter", "문의"), ("usetime", "이용시간"), ("restdate", "휴무일"),
+                   ("parking", "주차"), ("chkbabycarriage", "유모차 대여")],
+    "culture": [("infocenterculture", "문의"), ("usetimeculture", "이용시간"),
+                ("restdateculture", "휴무일"), ("parkingculture", "주차"),
+                ("usefee", "이용요금"), ("spendtime", "관람 소요시간")],
+    "food": [("infocenterfood", "문의"), ("opentimefood", "영업시간"),
+             ("restdatefood", "휴무일"), ("parkingfood", "주차"),
+             ("firstmenu", "대표메뉴"), ("treatmenu", "취급메뉴")],
+}
+
+
+def visit_info(common, intro, category):
+    """관광 API가 실제 제공한 방문 판단 정보만 화면용 항목으로 정리한다."""
+    result = []
+    phone = clean(common.get("tel"), 300)
+    if phone:
+        result.append({"key": "tel", "label": "전화", "value": phone})
+    for key, label in VISIT_INFO_FIELDS[category]:
+        value = clean(intro.get(key), 1000)
+        if value and not any(item["value"] == value for item in result):
+            result.append({"key": key, "label": label, "value": value})
+    return result
 
 
 def timestamp():
@@ -285,7 +317,7 @@ class DayTripService:
                 "address": address, "imageUrl": image_url(row.get("firstimage") or row.get("firstimage2")),
                 "latitude": coordinate(row.get("mapy"), 33, 39),
                 "longitude": coordinate(row.get("mapx"), 124, 132),
-                "overview": clean(row.get("overview")), "evidence": evidence,
+                "overview": clean(row.get("overview")), "visitInfo": [], "evidence": evidence,
                 "source": "tourapi", "retrievedAt": timestamp()}
 
     async def search(self, query: SearchRequest):
@@ -313,7 +345,7 @@ class DayTripService:
                 "notices": ["실제 조회한 후보예요. 키워드는 선호이며 모든 조건의 충족을 보장하지 않아요."],
                 "retrievedAt": timestamp()}
 
-    async def detail(self, place_id, intent=None):
+    async def detail(self, place_id, intent=None, include_visit_info=True):
         if not re.fullmatch(r"(12|14|39)_\d{1,15}", place_id):
             raise TourApiError("올바른 장소를 선택해주세요.", status_code=422)
         codes = await self.region_codes()
@@ -322,6 +354,15 @@ class DayTripService:
         place = self.place(items[0], intent, codes) if items else None
         if not place or place["id"] != place_id:
             raise TourApiError("이 장소를 선택한 강원도 여행에 담을 수 없어요. 다른 장소를 골라주세요.", status_code=404)
+        if include_visit_info:
+            try:
+                intro_items, _ = await self.call(KorServiceOp.DETAIL_INTRO,
+                                                 contentId=place_id.split("_")[1],
+                                                 contentTypeId=place_id.split("_")[0])
+                place["visitInfo"] = visit_info(items[0], intro_items[0] if intro_items else {}, place["category"])
+            except TourApiError:
+                # 소개정보 실패가 기본 장소 상세와 여행 진행을 막지 않는다.
+                place["visitInfo"] = visit_info(items[0], {}, place["category"])
         return place
 
     async def structured(self, name, model, instructions, data):
@@ -389,7 +430,7 @@ class DayTripService:
                     "notices": ["자동 해석을 사용하지 못해 기본 조건을 제안했어요. 직접 확인하고 수정해주세요."]}
 
     async def course(self, query: CourseRequest):
-        places = await asyncio.gather(*(self.detail(place_id, query.intent) for place_id in query.placeIds))
+        places = await asyncio.gather(*(self.detail(place_id, query.intent, include_visit_info=False) for place_id in query.placeIds))
         if any(place["category"] not in query.intent.categories for place in places):
             raise TourApiError("선택한 장소 유형과 여행 조건을 확인해주세요.", status_code=422)
         explanations = [{"placeId": place["id"], "text": " · ".join(place["evidence"]), "mode": "facts"} for place in places]

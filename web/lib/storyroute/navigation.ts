@@ -17,6 +17,6 @@ export function directionsUrl(destination: Place, origin?: Place) {
 }
 
 export function directionsLabel(destination: Place, origin?: Place) {
-  if (!located(destination)) return "지도에서 장소 검색";
-  return origin && located(origin) ? "이전 장소에서 길찾기" : "이 장소로 길찾기";
+  if (!located(destination)) return "카카오맵에서 장소 검색";
+  return origin && located(origin) ? "카카오맵에서 다음 길찾기" : "카카오맵에서 길찾기";
 }

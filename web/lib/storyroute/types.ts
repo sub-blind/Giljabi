@@ -19,6 +19,7 @@ export interface Place {
   latitude: number | null;
   longitude: number | null;
   overview: string;
+  visitInfo: { key: string; label: string; value: string }[];
   evidence: string[];
   source: "tourapi";
   retrievedAt: string;

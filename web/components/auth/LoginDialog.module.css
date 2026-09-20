@@ -1,0 +1,17 @@
+.backdrop { position:fixed; inset:0; z-index:3000; display:grid; place-items:center; padding:24px; background:#0e1b31a8; backdrop-filter:blur(6px); }
+.dialog { position:relative; width:min(430px,100%); max-height:calc(100dvh - 32px); overflow:auto; border:1px solid #dfe6ee; border-radius:22px; padding:34px 34px 28px; background:white; box-shadow:0 28px 80px #0813264d; color:#152238; }
+.close { position:absolute; top:16px; right:16px; display:grid; place-items:center; width:44px; height:44px; border:0; border-radius:50%; background:transparent; color:#546175; }
+.close:hover { background:#f1f4f8; }
+.mark { display:grid; place-items:center; width:44px; height:44px; margin:0 auto 8px; border-radius:13px; background:#245ee9; color:white; font-size:31px; font-weight:800; transform:rotate(-8deg); }
+.brand { text-align:center; font-size:17px; font-weight:800; letter-spacing:-.5px; }
+.dialog h2 { margin:26px 0 8px; text-align:center; font-size:30px; line-height:1.35; letter-spacing:-1.2px; word-break:keep-all; }
+.description { text-align:center; color:#637086; font-size:14px; }
+.dialog ul { margin:26px 0; padding:0; list-style:none; border-block:1px solid #e4e9f0; }
+.dialog li { display:flex; align-items:center; gap:14px; min-height:57px; padding:10px 4px; border-bottom:1px solid #eef1f5; font-size:14px; font-weight:600; }
+.dialog li:last-child { border:0; }
+.dialog li svg { color:#245ee9; flex:none; }
+.kakao { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; min-height:52px; border:0; border-radius:11px; background:#fee500; color:#191919; font-size:15px; font-weight:700; }
+.kakao:hover { background:#f4dc00; }
+.kakao span { font-size:14px; }
+.guest { display:block; min-height:44px; margin:10px auto 0; padding:8px 12px; border:0; background:transparent; color:#245ee9; font-size:13px; text-decoration:underline; text-underline-offset:4px; }
+@media (max-width:600px) { .backdrop { align-items:end; padding:0; } .dialog { width:100%; max-height:92dvh; border-radius:24px 24px 0 0; padding:32px 24px calc(24px + env(safe-area-inset-bottom)); } .dialog h2 { font-size:27px; } }

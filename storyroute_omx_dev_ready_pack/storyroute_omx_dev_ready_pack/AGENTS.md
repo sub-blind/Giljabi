@@ -1,5 +1,7 @@
 # AGENTS.md — StoryRoute AI
 
+> 이 파일은 구현 전 핸드오프 패키지 내부 규칙이다. 현재 Tourism 저장소 작업에는 루트 `AGENTS.md`와 루트 `docs` 문서를 우선한다.
+
 ## 1. 목표
 이 저장소의 목표는 StoryRoute AI를 **문서 중심 / contract-first / mock-first** 방식으로 구현하는 것이다.
 

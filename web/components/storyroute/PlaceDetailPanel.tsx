@@ -7,11 +7,13 @@ import { RelatedPanel, StoryPanel } from "./PlaceContent";
 import { AccessibilityPanel } from "./AccessibilityPanel";
 import styles from "./StoryRoute.module.css";
 
-export function PlaceDetailPanel({ id, onClose, onCandidate }: { id: string; onClose: () => void; onCandidate: (place: Place) => void }) {
+export type DetailTab = "intro" | "story" | "related" | "access";
+
+export function PlaceDetailPanel({ id, initialTab = "intro", onClose, onCandidate }: { id: string; initialTab?: DetailTab; onClose: () => void; onCandidate: (place: Place) => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [place, setPlace] = useState<Place | null>(null);
   const [error, setError] = useState("");
-  const [tab, setTab] = useState<"intro" | "story" | "related" | "access">("intro");
+  const [tab, setTab] = useState<DetailTab>(initialTab);
   useEffect(() => {
     const controller = new AbortController();
     const current = dialog.current;
@@ -29,8 +31,11 @@ export function PlaceDetailPanel({ id, onClose, onCandidate }: { id: string; onC
       <h3>{place.name}</h3><p className={styles.address}>{place.address}</p>
       <div className={styles.contentTabs} aria-label="장소 정보 선택">{([{ id: "intro", label: "장소 소개" }, { id: "story", label: "이야기 듣기" }, { id: "related", label: "함께 볼 곳" }, { id: "access", label: "방문 편의정보" }] as const).map(item =>
         <button key={item.id} type="button" className={styles.secondary} aria-pressed={tab === item.id} onClick={() => setTab(item.id)}>{item.label}</button>)}</div>
-      {tab === "intro" ? <p className={styles.overview}>{place.overview || "제공된 소개가 없어요."}</p> : tab === "story" ? <StoryPanel place={place} onIntro={() => setTab("intro")} /> : tab === "related" ? <RelatedPanel place={place} onCandidate={onCandidate} onIntro={() => setTab("intro")} /> : <AccessibilityPanel place={place} onIntro={() => setTab("intro")} />}
-      <p className={styles.small}>확인된 정보: {place.evidence.join(" · ")}</p>
+      {tab === "intro" ? <><p className={styles.overview}>{place.overview || "제공된 소개가 없어요."}</p>
+        <section className={styles.visitInfo} aria-labelledby="visit-info-heading"><h4 id="visit-info-heading">방문 전 확인</h4>
+          {place.visitInfo.length ? <dl>{place.visitInfo.map(item => <div key={item.key}><dt>{item.label}</dt><dd>{item.value}</dd></div>)}</dl> :
+            <p>제공된 운영시간·주차·문의 정보가 없어요. 출발 전에 카카오맵의 최신 정보를 확인해주세요.</p>}
+        </section></> : tab === "story" ? <StoryPanel place={place} onIntro={() => setTab("intro")} /> : tab === "related" ? <RelatedPanel place={place} onCandidate={onCandidate} onIntro={() => setTab("intro")} /> : <AccessibilityPanel place={place} onIntro={() => setTab("intro")} />}
       <p className={styles.small}>출처: ⓒ한국관광공사 · 조회 {new Date(place.retrievedAt).toLocaleString("ko-KR")}</p>
       <a className={styles.secondary} href={`https://map.kakao.com/link/search/${encodeURIComponent(place.name + " " + place.address)}`} target="_blank" rel="noopener noreferrer">외부 지도에서 확인 <ExternalLink size={16} aria-hidden="true" /></a>
     </>}

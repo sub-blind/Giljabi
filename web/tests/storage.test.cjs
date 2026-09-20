@@ -83,5 +83,5 @@ test("구간 길찾기는 두 장소를 연결하고 좌표 누락은 검색으�
   assert.equal(api.directionsUrl(destination, origin), `https://map.kakao.com/link/from/${encodeURIComponent(origin.name)},37,128/to/${encodeURIComponent(destination.name)},38,128`);
   assert.match(api.directionsUrl(destination, { ...origin, latitude: null }), /\/link\/to\//);
   assert.match(api.directionsUrl({ ...destination, longitude: null }, origin), /\/link\/search\//);
-  assert.equal(api.directionsLabel({ ...destination, longitude: null }), "지도에서 장소 검색");
+  assert.equal(api.directionsLabel({ ...destination, longitude: null }), "카카오맵에서 장소 검색");
 });

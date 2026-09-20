@@ -1,12 +1,13 @@
-import { ArrowRight, Images, MapPin, MessageSquareText, SlidersHorizontal } from "lucide-react";
+import { ArrowRight, Images, MessageSquareText, SlidersHorizontal } from "lucide-react";
 import type { Intent, TravelPhoto } from "@/lib/storyroute/types";
 import { IntentEditor } from "./IntentEditor";
 import { PhotoExplorer } from "./PhotoExplorer";
+import { GangwonRegionMap } from "./GangwonRegionMap";
 import styles from "./StoryRoute.module.css";
 
 export type SearchMode = "conditions" | "sentence" | "photos";
 const searchModes = [
-  { id: "conditions", label: "조건으로 찾기", icon: SlidersHorizontal },
+  { id: "conditions", label: "지도로 찾기", icon: SlidersHorizontal },
   { id: "sentence", label: "문장으로 찾기", icon: MessageSquareText },
   { id: "photos", label: "사진으로 찾기", icon: Images },
 ] as const;
@@ -17,9 +18,8 @@ export function SearchWorkspace({ mode, onMode, query, onQuery, intent, intentMo
   intent: Intent; intentMode: "ai" | "manual"; onIntent: (intent: Intent) => void;
   cities: { code: string; name: string }[]; busy: boolean; parsing: boolean; aiReady: boolean | null;
   photosReady: boolean; hasSelection: boolean; onParse: () => void; onSearch: () => void;
-  onCity: (city: string) => void; onPhoto: (photo: TravelPhoto) => void;
+  onCity: (city: string | null) => void; onPhoto: (photo: TravelPhoto) => void;
 }) {
-  const quickCities = ["춘천시", "속초시", "평창군", "인제군"].filter(name => cities.some(city => city.name === name));
   return <>
     <section className={styles.searchWorkspace} aria-label="여행 장소 찾기">
       <div className={styles.searchModes} role="tablist" aria-label="여행을 찾는 방법">
@@ -36,8 +36,9 @@ export function SearchWorkspace({ mode, onMode, query, onQuery, intent, intentMo
             document.getElementById(`search-tab-${searchModes[next].id}`)?.focus();
           }}><item.icon size={18} aria-hidden="true" /><span>{item.label}</span></button>)}
       </div>
-      <div id="search-pane-conditions" role="tabpanel" aria-labelledby="search-tab-conditions" hidden={mode !== "conditions"} className={styles.workspacePane}>
-        <IntentEditor intent={intent} cities={cities} mode={intentMode} busy={busy} onChange={onIntent} onSearch={onSearch} hasSelection={hasSelection} />
+      <div id="search-pane-conditions" role="tabpanel" aria-labelledby="search-tab-conditions" hidden={mode !== "conditions"} className={`${styles.workspacePane} ${styles.mapSearchPane}`}>
+        <GangwonRegionMap selectedCity={intent.city} busy={busy} hasSelection={hasSelection} onSelect={onCity} />
+        <IntentEditor intent={intent} cities={cities} mode={intentMode} busy={busy} onChange={onIntent} onSearch={onSearch} hasSelection={hasSelection} mapDriven />
       </div>
       <div id="search-pane-sentence" role="tabpanel" aria-labelledby="search-tab-sentence" hidden={mode !== "sentence"} className={styles.workspacePane}>
         <div className={styles.workspaceHeading}><h2>하고 싶은 여행을 적어주세요</h2><p>지역과 관심사를 정리한 뒤, 검색할 조건을 함께 확인해요.</p></div>
@@ -58,11 +59,5 @@ export function SearchWorkspace({ mode, onMode, query, onQuery, intent, intentMo
         <PhotoExplorer cities={cities} ready={photosReady} busy={busy} onExplore={onPhoto} />
       </div>
     </section>
-    {!!quickCities.length && <section className={styles.regionShortcuts} aria-labelledby="region-shortcuts-title">
-      <div><h2 id="region-shortcuts-title">지역만 정했다면</h2><p>관광지와 음식점을 바로 둘러보세요.</p></div>
-      <div className={styles.cityGrid}>{quickCities.map(city => <button key={city} className={styles.cityButton} type="button" disabled={busy}
-        onClick={() => onCity(city)}><MapPin size={17} aria-hidden="true" /><strong>{city}</strong><ArrowRight size={16} aria-hidden="true" /></button>)}</div>
-      {hasSelection && <p className={styles.selectionNotice}>다른 지역을 검색하면 담아둔 장소가 초기화돼요. 검색이 실패하면 이전 결과를 유지해요.</p>}
-    </section>}
   </>;
 }
