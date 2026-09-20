@@ -143,8 +143,8 @@ export function JourneyPanel({ places, candidates, route, routeReady, routeBusy,
 
     {journey && <progress className={styles.progress} value={count} max={places.length} aria-label="직접 체크한 방문 진행률" />}
 
-    <div className={styles.timelineHeading}><div><p className={styles.eyebrow}>오늘의 순서</p><h3>{journey ? "남은 일정과 기록" : "출발 전에 순서를 확인하세요"}</h3></div>
-      {!route && places.length > 1 && <button className={styles.textButton} type="button" disabled={busy || !routeReady} onClick={onCheckRoute}><Route size={15} aria-hidden="true" />자동차 이동 확인</button>}</div>
+    <div className={styles.timelineHeading}><div><p className={styles.eyebrow}>오늘의 순서</p><h3>{journey ? "남은 일정과 기록" : "방문 순서"}</h3></div>
+      {!route && places.length > 1 && <button className={styles.textButton} type="button" disabled={busy || !routeReady} onClick={onCheckRoute}><Route size={15} aria-hidden="true" />이동 확인</button>}</div>
 
     <ol className={styles.tripTimeline}>{places.map((place, index) => {
       const isVisited = visited.has(place.id);
@@ -154,16 +154,20 @@ export function JourneyPanel({ places, candidates, route, routeReady, routeBusy,
       return <li key={place.id} className={`${styles.timelineStop} ${isVisited ? styles.timelineStopVisited : ""} ${isCurrent ? styles.timelineStopCurrent : ""}`}>
         <div className={styles.timelineRail}><span>{isVisited ? <Check size={16} aria-hidden="true" /> : index + 1}</span></div>
         <div className={styles.timelineBody}>
-          <div className={styles.stopTitleRow}><div><span className={styles.stopStatus}>{explanationStatus}</span><h4>{place.name}</h4><p>{place.address}</p></div>
+          <div className={styles.stopTitleRow}><div><div className={styles.stopMeta}><span className={styles.stopStatus}>{explanationStatus}</span><span className={styles.stopCategory}>{categoryLabels[place.category]}</span></div><h4>{place.name}</h4><p>{place.address}</p></div>
             {!journey && <div className={styles.orderButtons}><button className={styles.iconButton} type="button" disabled={busy || index === 0} onClick={() => onMove(index, -1)} aria-label={`${place.name} 위로`}><ArrowUp size={17} /></button><button className={styles.iconButton} type="button" disabled={busy || index === places.length - 1} onClick={() => onMove(index, 1)} aria-label={`${place.name} 아래로`}><ArrowDown size={17} /></button></div>}
           </div>
           <div className={styles.stopQuickActions}>
-            <button className={styles.textButton} type="button" disabled={busy} onClick={() => onDetail(place.id, "intro")}>장소 소개</button>
-            <button className={styles.textButton} type="button" disabled={busy} onClick={() => onDetail(place.id, "story")}><Headphones size={14} aria-hidden="true" />이야기</button>
-            <button className={styles.textButton} type="button" disabled={busy} onClick={() => onDetail(place.id, "access")}><Accessibility size={14} aria-hidden="true" />편의정보</button>
-            {!isVisited && <button className={styles.textButton} type="button" disabled={busy} aria-expanded={replacementFor === place.id} onClick={() => setReplacementFor(replacementFor === place.id ? null : place.id)}><RefreshCw size={14} aria-hidden="true" />다른 장소로 교체</button>}
-            {journey && !isVisited && !isCurrent && <button className={styles.textButton} type="button" disabled={busy} onClick={() => persist({ ...journey, visitedIds: [...journey.visitedIds, place.id] }, `${place.name} 방문을 완료했어요.`)}>방문 완료</button>}
-            {journey && isVisited && <button className={styles.textButton} type="button" disabled={busy} onClick={() => persist({ ...journey, visitedIds: journey.visitedIds.filter(id => id !== place.id) }, "방문 체크를 되돌렸어요.")}>완료 취소</button>}
+            <div className={styles.stopInfoActions}>
+              <button className={styles.textButton} type="button" disabled={busy} onClick={() => onDetail(place.id, "intro")}><Info size={14} aria-hidden="true" />소개</button>
+              <button className={styles.textButton} type="button" disabled={busy} onClick={() => onDetail(place.id, "story")}><Headphones size={14} aria-hidden="true" />이야기</button>
+              <button className={styles.textButton} type="button" disabled={busy} onClick={() => onDetail(place.id, "access")}><Accessibility size={14} aria-hidden="true" />편의</button>
+            </div>
+            <div className={styles.stopManagementActions}>
+              {!isVisited && <button className={styles.textButton} type="button" disabled={busy} aria-expanded={replacementFor === place.id} onClick={() => setReplacementFor(replacementFor === place.id ? null : place.id)}><RefreshCw size={14} aria-hidden="true" />장소 변경</button>}
+              {journey && !isVisited && !isCurrent && <button className={styles.textButton} type="button" disabled={busy} onClick={() => persist({ ...journey, visitedIds: [...journey.visitedIds, place.id] }, `${place.name} 방문을 완료했어요.`)}><Check size={14} aria-hidden="true" />방문 완료</button>}
+              {journey && isVisited && <button className={styles.textButton} type="button" disabled={busy} onClick={() => persist({ ...journey, visitedIds: journey.visitedIds.filter(id => id !== place.id) }, "방문 체크를 되돌렸어요.")}>완료 취소</button>}
+            </div>
           </div>
           {replacementFor === place.id && <div className={styles.replacementPicker}>
             <strong>{place.city}의 다른 {categoryLabels[place.category]}</strong>
