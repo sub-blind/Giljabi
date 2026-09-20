@@ -20,6 +20,7 @@ export function GangwonRegionMap({ selectedCity, busy, hasSelection, onSelect }:
   onSelect: (city: string | null) => void;
 }) {
   const [hoveredCity, setHoveredCity] = useState<string | null>(null);
+  const [listOpen, setListOpen] = useState(false);
   const previewCity = hoveredCity ?? selectedCity;
   const previewing = hoveredCity !== null && hoveredCity !== selectedCity;
   const activate = (city: string | null) => {
@@ -82,11 +83,14 @@ export function GangwonRegionMap({ selectedCity, busy, hasSelection, onSelect }:
       <p className={styles.mapHint}><ArrowUpRight size={14} aria-hidden="true" />지역을 누르고 조건을 골라요</p>
     </div>
 
-    <div className={styles.mobileRegionGrid} aria-label="강원도 시군 목록">
-      {gangwonMapRegions.map(region => <button key={region.code} type="button" disabled={busy}
-        className={selectedCity === region.name ? styles.mobileRegionActive : undefined}
-        onClick={() => activate(region.name)}>{region.name}</button>)}
-    </div>
+    <details className={styles.mobileRegionPicker} open={listOpen} onToggle={event => setListOpen(event.currentTarget.open)}>
+      <summary><span>목록으로 지역 선택</span><strong>{selectedCity ?? "강원도 전체"}</strong></summary>
+      <div className={styles.mobileRegionGrid} aria-label="강원도 시군 목록">
+        {gangwonMapRegions.map(region => <button key={region.code} type="button" disabled={busy}
+          className={selectedCity === region.name ? styles.mobileRegionActive : undefined}
+          onClick={() => { activate(region.name); setListOpen(false); }}>{region.name}</button>)}
+      </div>
+    </details>
     {hasSelection && <p className={styles.selectionNotice}>다른 지역을 검색하면 담아둔 장소가 초기화돼요. 검색이 실패하면 이전 결과를 유지해요.</p>}
     <p className={styles.mapAttribution}>행정경계: 통계청 SGIS·행정안전부, 가공 vuski/admdongkor · CC BY 4.0</p>
   </section>;

@@ -45,6 +45,7 @@ export default function StoryRoute() {
   const [cities, setCities] = useState<{ code: string; name: string }[]>(() => gangwonMapRegions.map(({ code, name }) => ({ code, name })));
   const [connectionState, setConnectionState] = useState<"connecting" | "ready" | "error">("connecting");
   const [connectionAttempt, setConnectionAttempt] = useState(0);
+  const [visiblePlaceCount, setVisiblePlaceCount] = useState(6);
   const [hasSaved, setHasSaved] = useState(false);
   const [route, setRoute] = useState<CourseRoute | null>(null);
   const [searchMode, setSearchMode] = useState<SearchMode>("conditions");
@@ -55,11 +56,24 @@ export default function StoryRoute() {
   const lock = useRef(false);
   const requestId = useRef(0);
   const pending = useRef<AbortController | null>(null);
+  const historyReady = useRef(false);
+  const historyNavigation = useRef(false);
+  const previousPhase = useRef<Phase>("create");
+  const currentState = useRef(state);
+  currentState.current = state;
   const busy = state.busy !== "idle";
   const activeRoute = route?.orderedPlaceIds.join(".") === state.selectedIds.join(".") ? route : null;
   const selected = state.selectedIds.map(id => state.places.find(place => place.id === id)).filter((place): place is Place => !!place);
   const scope = state.appliedIntent?.city ?? "강원도";
+  const requestedScope = state.appliedIntent?.city ?? state.intent.city ?? "강원도";
   const title = state.phase === "create" ? state.intent.city ? `${state.intent.city}에서 어떤 하루를 보낼까요?` : "어디로 떠나볼까요?" : state.phase === "discover" ? `${scope}에서 갈 곳을 골라보세요` : `${scope}, 나의 하루 코스`;
+  const visiblePlaces = state.places.slice(0, visiblePlaceCount);
+  const hiddenPlaceCount = Math.max(0, state.places.length - visiblePlaceCount);
+  const busyMessage = state.busy === "intent" ? "여행 문장에서 지역과 관심사를 정리하고 있어요…"
+    : state.busy === "search" ? `${requestedScope}의 실제 관광 장소를 찾고 있어요…`
+    : state.busy === "course" ? "선택한 장소를 다시 확인해 코스를 만들고 있어요…"
+    : state.busy === "restore" ? "저장한 코스의 장소 정보를 다시 확인하고 있어요…"
+    : state.busy === "route" ? "현재 순서의 자동차 이동 정보를 확인하고 있어요…" : "";
 
   useEffect(() => {
     try { setHasSaved(!!loadCourse()); } catch { setMessage("저장 정보를 읽지 못했어요. 새 코스를 만들 수 있어요."); }
@@ -120,6 +134,29 @@ export default function StoryRoute() {
   }, [auth.authenticated]);
 
   useEffect(() => {
+    const onPopState = (event: PopStateEvent) => {
+      const requested = event.state?.storyRoutePhase;
+      const next: Phase = requested === "discover" || requested === "course" ? requested : "create";
+      const current = currentState.current;
+      if (next === "discover" && !current.appliedIntent) return;
+      if (next === "course" && !current.course) return;
+      historyNavigation.current = true;
+      update({ phase: next });
+    };
+    window.history.replaceState({ ...window.history.state, storyRoutePhase: "create" }, "");
+    historyReady.current = true;
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  useEffect(() => {
+    if (historyReady.current) {
+      if (historyNavigation.current) historyNavigation.current = false;
+      else if (previousPhase.current !== state.phase) {
+        window.history.pushState({ ...window.history.state, storyRoutePhase: state.phase }, "");
+      }
+      previousPhase.current = state.phase;
+    }
     window.scrollTo({ top: 0, behavior: "instant" });
     if (state.phase !== "create") document.getElementById("trip-page-title")?.focus({ preventScroll: true });
   }, [state.phase]);
@@ -199,7 +236,12 @@ export default function StoryRoute() {
       update({ places, intent: result.appliedIntent, appliedIntent: result.appliedIntent,
         selectedIds: more ? state.selectedIds : [], course: more ? state.course : null,
         page: result.page, hasMore: result.hasMore, phase: "discover" });
-      setNotices(result.notices); setMessage(!more && state.selectedIds.length ? "새 조건으로 검색해서 이전 선택을 초기화했어요." : `${places.length}개 후보를 확인했어요.`);
+      setVisiblePlaceCount(more ? Math.min(visiblePlaceCount + 6, places.length) : 6);
+      setNotices(result.notices); setMessage(!more && state.selectedIds.length
+        ? "새 조건으로 검색해서 이전 선택을 초기화했어요."
+        : more
+          ? `후보가 ${places.length}개로 늘었어요.`
+          : `${places.length}개 후보 중 먼저 ${Math.min(6, places.length)}개를 보여드려요.`);
     });
   }
 
@@ -342,7 +384,7 @@ export default function StoryRoute() {
       {connectionState === "connecting" && <div className={styles.connectionNotice} role="status" aria-live="polite"><RefreshCw className={styles.connectionSpinner} size={18} aria-hidden="true" /><div><strong>여행 정보를 준비하고 있어요</strong><span>첫 접속은 서버를 시작하느라 최대 1분 정도 걸릴 수 있어요. 연결되면 검색 버튼이 자동으로 열려요.</span></div></div>}
       {connectionState === "error" && <div className={styles.connectionError} role="alert"><div><strong>여행 서버에 연결하지 못했어요</strong><span>네트워크를 확인한 뒤 다시 연결해주세요. 선택한 조건은 그대로 유지돼요.</span></div><button className={styles.secondary} type="button" disabled={busy} onClick={() => setConnectionAttempt(value => value + 1)}><RefreshCw size={15} aria-hidden="true" />다시 연결</button></div>}
       {auth.error && <p className={styles.warning}>{auth.error}</p>}
-      <div className={styles.status} role="status" aria-live="polite">{message || (busy ? "요청을 처리하고 있어요…" : "")}</div>
+      <div className={styles.status} role="status" aria-live="polite">{message || busyMessage}</div>
       {error && <p className={styles.error} role="alert">{error}</p>}
       {notices.map((item, index) => <p key={index} className={styles.notice}>{item}</p>)}
 
@@ -371,16 +413,18 @@ export default function StoryRoute() {
         <div className={styles.pageHeading}><div><p className={styles.eyebrow}>내가 고르는 작은 여행</p><h1 id="trip-page-title" tabIndex={-1}>{title}</h1><p className={styles.muted}>{scope} · 당일 · {state.appliedIntent?.categories.map(item => categoryLabels[item]).join(" / ")}{state.appliedIntent?.keywords.length ? " · " + state.appliedIntent.keywords.join(", ") : ""}</p></div>
           <button className={styles.secondary} type="button" disabled={busy} onClick={() => { setSearchMode("conditions"); update({ phase: "create", intentReady: true }); }}>조건 수정</button></div>
         <div className={styles.resultsLayout}><section aria-label="조회된 장소 후보">
-          <div className={styles.placeGrid}>{state.places.map(place => <PlaceCard key={place.id} place={place} selected={state.selectedIds.includes(place.id)} busy={busy} onPick={() => pick(place.id)} onDetail={() => setDetail({ id: place.id, tab: "intro" })} />)}</div>
+          {!!state.places.length && <div className={styles.resultToolbar}><strong>추천 후보</strong><span>{state.places.length}개 중 {visiblePlaces.length}개 표시</span></div>}
+          <div className={styles.placeGrid}>{visiblePlaces.map(place => <PlaceCard key={place.id} place={place} selected={state.selectedIds.includes(place.id)} busy={busy} onPick={() => pick(place.id)} onDetail={() => setDetail({ id: place.id, tab: "intro" })} />)}</div>
           {!state.places.length && <div className={styles.empty}><h2>담을 장소를 찾지 못했어요</h2><p>다른 지역이나 장소 유형을 골라보세요.</p><button className={styles.teal} type="button" onClick={() => update({ phase: "create" })}>조건 바꾸기</button></div>}
-          {state.hasMore && <button className={`${styles.secondary} ${styles.full}`} type="button" disabled={busy} onClick={() => void search(true)}>다른 후보 더 보기</button>}
+          {hiddenPlaceCount > 0 && <button className={`${styles.secondary} ${styles.full}`} type="button" disabled={busy} onClick={() => setVisiblePlaceCount(count => Math.min(count + 6, state.places.length))}>후보 {Math.min(6, hiddenPlaceCount)}개 더 보기</button>}
+          {!hiddenPlaceCount && state.hasMore && <button className={`${styles.secondary} ${styles.full}`} type="button" disabled={busy} onClick={() => void search(true)}>다음 검색 결과 불러오기</button>}
         </section><aside className={`${styles.panel} ${styles.selectionTray}`} aria-label="선택한 장소"><div className={styles.row}><h2>나의 하루</h2><span className={styles.tag}>{selected.length} / 3곳</span></div>
           {selected.map((place, index) => <div className={styles.selectedStop} key={place.id}><strong>{index + 1}. {place.name}</strong><div className={styles.stopActions}>
             <button className={styles.textButton} type="button" disabled={busy} onClick={() => replace(place.id)} aria-label={`${place.name} 다른 장소로 바꾸기`}><Shuffle size={14} aria-hidden="true" />다른 장소</button>
             <button className={styles.textButton} type="button" disabled={busy} onClick={() => pick(place.id)} aria-label={`${place.name} 빼기`}><Trash2 size={14} aria-hidden="true" />빼기</button></div></div>)}
           {!selected.length && <p className={styles.emptySelection}>마음에 드는 장소를 담아보세요.</p>}
           <p className={styles.small}>한두 곳으로도 출발할 수 있어요.<br />다른 장소는 현재 조회된 후보 안에서 뽑아요.</p>
-          <button className={`${styles.primary} ${styles.full}`} type="button" disabled={busy || !selected.length} onClick={() => void build()}>{state.busy === "course" ? "실제 장소와 근거 확인 중…" : "내 하루 코스 만들기 →"}</button>
+          <button className={`${styles.primary} ${styles.full}`} type="button" disabled={busy || !selected.length} onClick={() => void build()}>{state.busy === "course" ? "실제 장소 확인 중…" : "내 하루 코스 만들기 →"}</button>
         </aside></div>
       </> : state.course ? <>
         <div className={styles.pageHeading}><div><p className={styles.eyebrow}>계획에서 출발까지</p><h1 id="trip-page-title" tabIndex={-1}>{title}</h1><p className={styles.muted}>다음 장소, 길찾기, 현장 정보와 방문 기록을 한 화면에서 이어가세요.</p></div><button className={styles.secondary} type="button" disabled={busy} onClick={() => update({ phase: "discover" })}>장소 편집</button></div>
