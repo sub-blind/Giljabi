@@ -10,6 +10,7 @@ __pycache__/
 .mypy_cache/
 .idea/
 .vscode/
+.claude/settings.local.json
 *.egg-info/
 dist/
 build/
@@ -21,3 +22,17 @@ web/.env.local
 *.tsbuildinfo
 .tmp/
 output/
+.coverage
+coverage.xml
+htmlcov/
+.ruff_cache/
+*.log
+*.sqlite
+*.sqlite3
+*.db
+credentials.json
+service-account*.json
+*.pem
+*.key
+*.p12
+*.pfx
