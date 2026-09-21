@@ -1,0 +1,1991 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "StoryRoute 강원도 하루 여행 API",
+    "version": "0.1.0",
+    "description": "현재 React 화면이 사용하는 내부 API. 관광 원형 응답이나 과거 확장 계획과 구분한다."
+  },
+  "paths": {
+    "/api/v1/day-trip/status": {
+      "get": {
+        "tags": [
+          "강원도 하루 여행"
+        ],
+        "summary": "관광·AI 연결 준비 상태",
+        "operationId": "get_status_api_v1_day_trip_status_get",
+        "responses": {
+          "200": {
+            "description": "연결 준비 상태",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "입력 조건 또는 장소 ID 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "장소 없음 또는 제공 지역 밖",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "요청량 또는 관광 조회량 제한",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "관광 정보 연결·응답 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "관광 연결 준비 중",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/day-trip/regions": {
+      "get": {
+        "tags": [
+          "강원도 하루 여행"
+        ],
+        "summary": "강원도 시군 선택지",
+        "operationId": "get_regions_api_v1_day_trip_regions_get",
+        "responses": {
+          "200": {
+            "description": "실제 지역코드 목록",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "입력 조건 또는 장소 ID 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "장소 없음 또는 제공 지역 밖",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "요청량 또는 관광 조회량 제한",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "관광 정보 연결·응답 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "관광 연결 준비 중",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/day-trip/photos/search": {
+      "post": {
+        "tags": [
+          "강원도 하루 여행"
+        ],
+        "summary": "강원도 관광사진 검색",
+        "operationId": "search_photos_api_v1_day_trip_photos_search_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhotoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "촬영지를 확인한 사진",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "입력 조건 또는 장소 ID 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "장소 없음 또는 제공 지역 밖",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "요청량 또는 관광 조회량 제한",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "관광 정보 연결·응답 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "관광 연결 준비 중",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/day-trip/places/{place_id}/stories": {
+      "get": {
+        "tags": [
+          "강원도 하루 여행"
+        ],
+        "summary": "장소명·위치를 대조한 원본 이야기",
+        "operationId": "get_stories_api_v1_day_trip_places__place_id__stories_get",
+        "parameters": [
+          {
+            "name": "place_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Place Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "오디 원본 대본·오디오",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "입력 조건 또는 장소 ID 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "장소 없음 또는 제공 지역 밖",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "요청량 또는 관광 조회량 제한",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "관광 정보 연결·응답 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "관광 연결 준비 중",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/day-trip/places/{place_id}/related": {
+      "get": {
+        "tags": [
+          "강원도 하루 여행"
+        ],
+        "summary": "기준월 연관 관광지와 실제 장소 연결",
+        "operationId": "get_related_api_v1_day_trip_places__place_id__related_get",
+        "parameters": [
+          {
+            "name": "place_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Place Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "지역·이름을 대조한 연관 후보",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelatedResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "입력 조건 또는 장소 ID 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "장소 없음 또는 제공 지역 밖",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "요청량 또는 관광 조회량 제한",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "관광 정보 연결·응답 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "관광 연결 준비 중",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/day-trip/places/{place_id}/accessibility": {
+      "get": {
+        "tags": [
+          "강원도 하루 여행"
+        ],
+        "summary": "동일 장소를 대조한 방문 편의정보",
+        "operationId": "get_accessibility_api_v1_day_trip_places__place_id__accessibility_get",
+        "parameters": [
+          {
+            "name": "place_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Place Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "무장애 여행정보의 제공 항목",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "입력 조건 또는 장소 ID 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "장소 없음 또는 제공 지역 밖",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "요청량 또는 관광 조회량 제한",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "관광 정보 연결·응답 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "관광 연결 준비 중",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/day-trip/intent": {
+      "post": {
+        "tags": [
+          "강원도 하루 여행"
+        ],
+        "summary": "여행 문장 해석",
+        "operationId": "parse_intent_api_v1_day_trip_intent_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "수정 가능한 여행 조건",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntentResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "입력 조건 또는 장소 ID 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "장소 없음 또는 제공 지역 밖",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "요청량 또는 관광 조회량 제한",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "관광 정보 연결·응답 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "관광 연결 준비 중",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/day-trip/places/search": {
+      "post": {
+        "tags": [
+          "강원도 하루 여행"
+        ],
+        "summary": "실제 강원도 장소 검색",
+        "operationId": "search_places_api_v1_day_trip_places_search_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "실제 후보와 적용 조건",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "입력 조건 또는 장소 ID 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "장소 없음 또는 제공 지역 밖",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "요청량 또는 관광 조회량 제한",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "관광 정보 연결·응답 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "관광 연결 준비 중",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/day-trip/places/{place_id}": {
+      "get": {
+        "tags": [
+          "강원도 하루 여행"
+        ],
+        "summary": "실제 강원도 장소 상세 확인",
+        "operationId": "get_place_api_v1_day_trip_places__place_id__get",
+        "parameters": [
+          {
+            "name": "place_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Place Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "실제 장소 상세",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Place"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "입력 조건 또는 장소 ID 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "장소 없음 또는 제공 지역 밖",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "요청량 또는 관광 조회량 제한",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "관광 정보 연결·응답 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "관광 연결 준비 중",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/day-trip/course": {
+      "post": {
+        "tags": [
+          "강원도 하루 여행"
+        ],
+        "summary": "선택한 장소 재검증과 코스 근거 확인",
+        "operationId": "create_course_api_v1_day_trip_course_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CourseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "재검증한 코스와 장소별 근거",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "입력 조건 또는 장소 ID 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "장소 없음 또는 제공 지역 밖",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "요청량 또는 관광 조회량 제한",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "관광 정보 연결·응답 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "관광 연결 준비 중",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/day-trip/course/route": {
+      "post": {
+        "tags": [
+          "강원도 하루 여행"
+        ],
+        "summary": "재검증한 코스 구간의 자동차 경로·예상 이동",
+        "operationId": "course_route_api_v1_day_trip_course_route_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CourseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "입력 조건 또는 장소 ID 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "장소 없음 또는 제공 지역 밖",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "요청량 또는 관광 조회량 제한",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "관광 정보 연결·응답 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "관광 연결 준비 중",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AccessField": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "group": {
+            "type": "string",
+            "title": "Group"
+          },
+          "value": {
+            "type": "string",
+            "title": "Value"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "group",
+          "value"
+        ],
+        "title": "AccessField"
+      },
+      "AccessResponse": {
+        "properties": {
+          "placeId": {
+            "type": "string",
+            "title": "Placeid"
+          },
+          "matched": {
+            "type": "boolean",
+            "title": "Matched"
+          },
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/AccessField"
+            },
+            "type": "array",
+            "title": "Fields"
+          },
+          "source": {
+            "type": "string",
+            "const": "with-tour",
+            "title": "Source",
+            "default": "with-tour"
+          },
+          "sourceModifiedDate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sourcemodifieddate"
+          },
+          "notices": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notices"
+          },
+          "retrievedAt": {
+            "type": "string",
+            "title": "Retrievedat"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "placeId",
+          "matched",
+          "fields",
+          "sourceModifiedDate",
+          "notices",
+          "retrievedAt"
+        ],
+        "title": "AccessResponse"
+      },
+      "CourseRequest": {
+        "properties": {
+          "placeIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Placeids"
+          },
+          "intent": {
+            "$ref": "#/components/schemas/Intent"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "placeIds",
+          "intent"
+        ],
+        "title": "CourseRequest"
+      },
+      "CourseResponse": {
+        "properties": {
+          "orderedPlaces": {
+            "items": {
+              "$ref": "#/components/schemas/Place"
+            },
+            "type": "array",
+            "title": "Orderedplaces"
+          },
+          "explanations": {
+            "items": {
+              "$ref": "#/components/schemas/Explanation"
+            },
+            "type": "array",
+            "title": "Explanations"
+          },
+          "notices": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notices"
+          },
+          "retrievedAt": {
+            "type": "string",
+            "title": "Retrievedat"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "orderedPlaces",
+          "explanations",
+          "notices",
+          "retrievedAt"
+        ],
+        "title": "CourseResponse",
+        "description": "재검증된 장소 순서와 장소별 근거."
+      },
+      "ErrorDetail": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "retryable": {
+            "type": "boolean",
+            "title": "Retryable"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "retryable"
+        ],
+        "title": "ErrorDetail"
+      },
+      "ErrorResponse": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorDetail"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "title": "ErrorResponse",
+        "description": "한국어 사용자 메시지를 담은 오류 응답."
+      },
+      "Explanation": {
+        "properties": {
+          "placeId": {
+            "type": "string",
+            "title": "Placeid"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "ai",
+              "facts"
+            ],
+            "title": "Mode"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "placeId",
+          "text",
+          "mode"
+        ],
+        "title": "Explanation",
+        "description": "확인된 사실 또는 소개 원문과 대조한 AI 단서."
+      },
+      "Intent": {
+        "properties": {
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "categories": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "attraction",
+                "culture",
+                "food"
+              ]
+            },
+            "type": "array",
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Categories"
+          },
+          "keywords": {
+            "items": {
+              "type": "string",
+              "maxLength": 30,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 3,
+            "title": "Keywords"
+          },
+          "preferences": {
+            "items": {
+              "type": "string",
+              "maxLength": 160
+            },
+            "type": "array",
+            "maxItems": 3,
+            "title": "Preferences"
+          },
+          "unsupportedConditions": {
+            "items": {
+              "type": "string",
+              "maxLength": 160
+            },
+            "type": "array",
+            "maxItems": 3,
+            "title": "Unsupportedconditions"
+          },
+          "region": {
+            "type": "string",
+            "const": "gangwon",
+            "title": "Region",
+            "default": "gangwon"
+          },
+          "durationDays": {
+            "type": "integer",
+            "const": 1,
+            "title": "Durationdays",
+            "default": 1
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "categories",
+          "keywords",
+          "preferences",
+          "unsupportedConditions"
+        ],
+        "title": "Intent"
+      },
+      "IntentRequest": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Query"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "title": "IntentRequest"
+      },
+      "IntentResponse": {
+        "properties": {
+          "intent": {
+            "$ref": "#/components/schemas/Intent"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "ai",
+              "manual"
+            ],
+            "title": "Mode"
+          },
+          "notices": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notices"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "intent",
+          "mode",
+          "notices"
+        ],
+        "title": "IntentResponse",
+        "description": "자동 해석 또는 직접 수정할 기본 조건."
+      },
+      "PhotoRequest": {
+        "properties": {
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "keyword": {
+            "type": "string",
+            "maxLength": 40,
+            "title": "Keyword",
+            "default": ""
+          },
+          "page": {
+            "type": "integer",
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Page",
+            "description": "조회할 사진 API의 시작 페이지",
+            "default": 1
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "PhotoRequest"
+      },
+      "PhotoResponse": {
+        "properties": {
+          "photos": {
+            "items": {
+              "$ref": "#/components/schemas/TravelPhoto"
+            },
+            "type": "array",
+            "title": "Photos"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page",
+            "description": "마지막으로 조회에 성공한 사진 API 페이지. 추가 조회는 이 값에 1을 더해 요청한다."
+          },
+          "hasMore": {
+            "type": "boolean",
+            "title": "Hasmore"
+          },
+          "appliedCity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Appliedcity"
+          },
+          "appliedKeyword": {
+            "type": "string",
+            "title": "Appliedkeyword"
+          },
+          "notices": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notices"
+          },
+          "retrievedAt": {
+            "type": "string",
+            "title": "Retrievedat"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "photos",
+          "page",
+          "hasMore",
+          "appliedCity",
+          "appliedKeyword",
+          "notices",
+          "retrievedAt"
+        ],
+        "title": "PhotoResponse"
+      },
+      "Place": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "attraction",
+              "culture",
+              "food"
+            ],
+            "title": "Category"
+          },
+          "city": {
+            "type": "string",
+            "title": "City"
+          },
+          "address": {
+            "type": "string",
+            "title": "Address"
+          },
+          "imageUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Imageurl"
+          },
+          "latitude": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latitude"
+          },
+          "longitude": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Longitude"
+          },
+          "overview": {
+            "type": "string",
+            "title": "Overview"
+          },
+          "visitInfo": {
+            "items": {
+              "$ref": "#/components/schemas/VisitInfo"
+            },
+            "type": "array",
+            "title": "Visitinfo"
+          },
+          "evidence": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Evidence"
+          },
+          "source": {
+            "type": "string",
+            "const": "tourapi",
+            "title": "Source"
+          },
+          "retrievedAt": {
+            "type": "string",
+            "title": "Retrievedat"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "category",
+          "city",
+          "address",
+          "imageUrl",
+          "latitude",
+          "longitude",
+          "overview",
+          "evidence",
+          "source",
+          "retrievedAt"
+        ],
+        "title": "Place",
+        "description": "관광 API 응답을 화면용 필드로 정리한 실제 장소."
+      },
+      "RegionsResponse": {
+        "properties": {
+          "region": {
+            "type": "string",
+            "title": "Region"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "cities": {
+            "items": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Cities"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "region",
+          "name",
+          "cities"
+        ],
+        "title": "RegionsResponse"
+      },
+      "RelatedCandidate": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "city": {
+            "type": "string",
+            "title": "City"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rank"
+          },
+          "place": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Place"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "city",
+          "category",
+          "rank",
+          "place"
+        ],
+        "title": "RelatedCandidate"
+      },
+      "RelatedResponse": {
+        "properties": {
+          "placeId": {
+            "type": "string",
+            "title": "Placeid"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/RelatedCandidate"
+            },
+            "type": "array",
+            "title": "Candidates"
+          },
+          "baseMonth": {
+            "type": "string",
+            "title": "Basemonth"
+          },
+          "notices": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notices"
+          },
+          "retrievedAt": {
+            "type": "string",
+            "title": "Retrievedat"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "placeId",
+          "candidates",
+          "baseMonth",
+          "notices",
+          "retrievedAt"
+        ],
+        "title": "RelatedResponse"
+      },
+      "RouteResponse": {
+        "properties": {
+          "orderedPlaceIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Orderedplaceids"
+          },
+          "mode": {
+            "type": "string",
+            "const": "car",
+            "title": "Mode",
+            "default": "car"
+          },
+          "source": {
+            "type": "string",
+            "const": "kakaomobility",
+            "title": "Source",
+            "default": "kakaomobility"
+          },
+          "segments": {
+            "items": {
+              "$ref": "#/components/schemas/RouteSegment"
+            },
+            "type": "array",
+            "title": "Segments"
+          },
+          "totalDistanceMeters": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Totaldistancemeters"
+          },
+          "totalDurationSeconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Totaldurationseconds"
+          },
+          "notices": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notices"
+          },
+          "retrievedAt": {
+            "type": "string",
+            "title": "Retrievedat"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "orderedPlaceIds",
+          "segments",
+          "totalDistanceMeters",
+          "totalDurationSeconds",
+          "notices",
+          "retrievedAt"
+        ],
+        "title": "RouteResponse"
+      },
+      "RouteSegment": {
+        "properties": {
+          "originId": {
+            "type": "string",
+            "title": "Originid"
+          },
+          "destinationId": {
+            "type": "string",
+            "title": "Destinationid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ready",
+              "unavailable",
+              "missing-coordinates"
+            ],
+            "title": "Status"
+          },
+          "distanceMeters": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1500000.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distancemeters"
+          },
+          "durationSeconds": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 172800.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Durationseconds"
+          },
+          "path": {
+            "items": {
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array",
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "type": "array",
+            "maxItems": 20000,
+            "title": "Path"
+          },
+          "notice": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notice"
+          },
+          "retrievedAt": {
+            "type": "string",
+            "title": "Retrievedat"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "originId",
+          "destinationId",
+          "status",
+          "retrievedAt"
+        ],
+        "title": "RouteSegment"
+      },
+      "SearchRequest": {
+        "properties": {
+          "intent": {
+            "$ref": "#/components/schemas/Intent"
+          },
+          "page": {
+            "type": "integer",
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Page",
+            "default": 1
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "intent"
+        ],
+        "title": "SearchRequest"
+      },
+      "SearchResponse": {
+        "properties": {
+          "places": {
+            "items": {
+              "$ref": "#/components/schemas/Place"
+            },
+            "type": "array",
+            "title": "Places"
+          },
+          "appliedIntent": {
+            "$ref": "#/components/schemas/Intent"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "hasMore": {
+            "type": "boolean",
+            "title": "Hasmore"
+          },
+          "notices": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notices"
+          },
+          "retrievedAt": {
+            "type": "string",
+            "title": "Retrievedat"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "places",
+          "appliedIntent",
+          "page",
+          "hasMore",
+          "notices",
+          "retrievedAt"
+        ],
+        "title": "SearchResponse",
+        "description": "실제 조회 후보와 적용된 조건."
+      },
+      "StatusResponse": {
+        "properties": {
+          "tourismReady": {
+            "type": "boolean",
+            "title": "Tourismready"
+          },
+          "aiReady": {
+            "type": "boolean",
+            "title": "Aiready"
+          },
+          "photosReady": {
+            "type": "boolean",
+            "title": "Photosready"
+          },
+          "audioReady": {
+            "type": "boolean",
+            "title": "Audioready"
+          },
+          "relatedReady": {
+            "type": "boolean",
+            "title": "Relatedready"
+          },
+          "accessReady": {
+            "type": "boolean",
+            "title": "Accessready"
+          },
+          "routeReady": {
+            "type": "boolean",
+            "title": "Routeready"
+          },
+          "testing": {
+            "type": "boolean",
+            "title": "Testing"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "tourismReady",
+          "aiReady",
+          "photosReady",
+          "audioReady",
+          "relatedReady",
+          "accessReady",
+          "routeReady",
+          "testing"
+        ],
+        "title": "StatusResponse",
+        "description": "비밀키를 노출하지 않는 연결 준비 상태."
+      },
+      "StoryResponse": {
+        "properties": {
+          "placeId": {
+            "type": "string",
+            "title": "Placeid"
+          },
+          "stories": {
+            "items": {
+              "$ref": "#/components/schemas/TravelStory"
+            },
+            "type": "array",
+            "title": "Stories"
+          },
+          "notices": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notices"
+          },
+          "retrievedAt": {
+            "type": "string",
+            "title": "Retrievedat"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "placeId",
+          "stories",
+          "notices",
+          "retrievedAt"
+        ],
+        "title": "StoryResponse"
+      },
+      "TravelPhoto": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "location": {
+            "type": "string",
+            "title": "Location"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "imageUrl": {
+            "type": "string",
+            "title": "Imageurl"
+          },
+          "photographer": {
+            "type": "string",
+            "title": "Photographer"
+          },
+          "keywords": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Keywords"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "location",
+          "city",
+          "imageUrl",
+          "photographer",
+          "keywords",
+          "source"
+        ],
+        "title": "TravelPhoto"
+      },
+      "TravelStory": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "script": {
+            "type": "string",
+            "title": "Script"
+          },
+          "audioUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audiourl"
+          },
+          "matchMethod": {
+            "type": "string",
+            "title": "Matchmethod"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "script",
+          "audioUrl",
+          "matchMethod",
+          "source"
+        ],
+        "title": "TravelStory"
+      },
+      "VisitInfo": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "value": {
+            "type": "string",
+            "title": "Value"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "value"
+        ],
+        "title": "VisitInfo"
+      }
+    }
+  }
+}

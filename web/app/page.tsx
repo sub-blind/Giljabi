@@ -1,5 +1,5 @@
-import GangwonTravelPlanner from "@/components/GangwonTravelPlanner";
+import StoryRoute from "@/components/storyroute/StoryRoute";
 
 export default function Page() {
-  return <GangwonTravelPlanner />;
+  return <StoryRoute />;
 }

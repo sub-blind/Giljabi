@@ -1,5 +1,7 @@
 # StoryRoute AI — Development Handoff Pack
 
+> **참고용 보관본**: 이 패키지는 구현 전의 넓은 설계 범위를 담고 있다. 현재 Tourism 프로젝트의 기능·API·화면 기준은 저장소 루트의 `README.md`, `docs/PROJECT_PLAN.md`, `docs/FRONTEND_API_SPEC.md`, `docs/VALIDATION.md`를 우선한다.
+
 이 패키지는 **스토리루트 AI 개발 직전 단계**에서 필요한 문서를 한 번에 정리한 최종 핸드오프 번들이다.
 
 핵심 목표는 5가지다.

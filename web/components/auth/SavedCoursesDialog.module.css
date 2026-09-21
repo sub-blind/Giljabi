@@ -1,0 +1,19 @@
+.backdrop { position:fixed; inset:0; z-index:2900; display:grid; place-items:center; padding:24px; background:#0e1b3199; backdrop-filter:blur(5px); }
+.dialog { width:min(540px,100%); max-height:min(720px,calc(100dvh - 40px)); overflow:auto; border:1px solid #dce4ed; border-radius:22px; background:white; box-shadow:0 28px 80px #08132645; }
+.dialog header { position:sticky; top:0; z-index:2; display:flex; align-items:center; justify-content:space-between; padding:24px 26px 18px; border-bottom:1px solid #e5eaf0; background:white; }
+.dialog header p { margin:0 0 4px; color:#245ee9; font-size:12px; font-weight:700; }
+.dialog h2 { margin:0; color:#152238; font-size:24px; }
+.dialog header button { display:grid; place-items:center; width:44px; height:44px; border:0; border-radius:50%; background:transparent; color:#556276; }
+.dialog header button:hover { background:#f1f4f8; }
+.dialog ul { margin:0; padding:8px 26px 26px; list-style:none; }
+.dialog li { display:grid; grid-template-columns:minmax(0,1fr) 44px; align-items:center; gap:8px; border-bottom:1px solid #e8edf2; }
+.course { display:flex; flex-direction:column; align-items:flex-start; gap:7px; min-width:0; padding:18px 4px; border:0; background:white; color:#152238; text-align:left; }
+.course strong { max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:16px; }
+.course span,.course small { display:flex; align-items:center; gap:6px; color:#657287; font-size:12px; }
+.course:hover strong { color:#245ee9; }
+.delete { display:grid; place-items:center; width:44px; height:44px; border:0; border-radius:10px; background:white; color:#7a8799; }
+.delete:hover { background:#fff0ee; color:#ba3b31; }
+.empty { display:flex; flex-direction:column; align-items:center; gap:10px; padding:64px 24px; text-align:center; color:#657287; }
+.empty strong { color:#152238; }
+.empty p { margin:0; font-size:13px; }
+@media(max-width:600px) { .backdrop { align-items:end; padding:0; } .dialog { max-height:88dvh; border-radius:22px 22px 0 0; } }

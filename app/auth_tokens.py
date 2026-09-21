@@ -6,7 +6,6 @@ import hmac
 import json
 import secrets
 import time
-from dataclasses import dataclass
 from typing import Any
 
 from fastapi import HTTPException
@@ -37,28 +36,23 @@ def create_jwt(payload: dict[str, Any], secret: str) -> str:
 def decode_jwt(token: str, secret: str, expected_type: str | None = None) -> dict[str, Any]:
     try:
         encoded_header, encoded_payload, encoded_signature = token.split(".")
-    except ValueError as exc:
-        raise HTTPException(status_code=401, detail="Invalid token format.") from exc
-
-    signing_input = f"{encoded_header}.{encoded_payload}".encode("ascii")
-    expected_signature = hmac.new(secret.encode("utf-8"), signing_input, hashlib.sha256).digest()
-    actual_signature = _b64url_decode(encoded_signature)
-    if not hmac.compare_digest(expected_signature, actual_signature):
-        raise HTTPException(status_code=401, detail="Invalid token signature.")
-
-    try:
+        header = json.loads(_b64url_decode(encoded_header))
+        if not isinstance(header, dict) or header.get("alg") != "HS256":
+            raise ValueError
+        signing_input = f"{encoded_header}.{encoded_payload}".encode("ascii")
+        expected_signature = hmac.new(secret.encode("utf-8"), signing_input, hashlib.sha256).digest()
+        if not hmac.compare_digest(expected_signature, _b64url_decode(encoded_signature)):
+            raise ValueError
         payload = json.loads(_b64url_decode(encoded_payload))
-    except json.JSONDecodeError as exc:
-        raise HTTPException(status_code=401, detail="Invalid token payload.") from exc
-
-    now = int(time.time())
-    exp = payload.get("exp")
-    if not isinstance(exp, int) or exp <= now:
-        raise HTTPException(status_code=401, detail="Token expired.")
-
-    token_type = payload.get("type")
-    if expected_type and token_type != expected_type:
-        raise HTTPException(status_code=401, detail="Unexpected token type.")
+        if not isinstance(payload, dict):
+            raise ValueError
+        exp = payload.get("exp")
+        if type(exp) is not int or exp <= int(time.time()):
+            raise ValueError
+        if expected_type and payload.get("type") != expected_type:
+            raise ValueError
+    except (ValueError, TypeError, UnicodeError, AttributeError):
+        raise HTTPException(status_code=401, detail="인증 정보가 유효하지 않습니다. 다시 로그인해주세요.") from None
     return payload
 
 
@@ -80,43 +74,3 @@ def new_state_token() -> str:
 
 def new_jti() -> str:
     return secrets.token_urlsafe(24)
-
-
-@dataclass(slots=True)
-class RefreshSession:
-    jti: str
-    user_id: str
-    token_hash: str
-    expires_at: int
-    provider: str
-    nickname: str | None
-    email: str | None
-
-
-class RefreshSessionStore:
-    def __init__(self) -> None:
-        self._items: dict[str, RefreshSession] = {}
-
-    def save(self, session: RefreshSession) -> None:
-        self._items[session.jti] = session
-
-    def get(self, jti: str) -> RefreshSession | None:
-        session = self._items.get(jti)
-        if not session:
-            return None
-        if session.expires_at <= utc_now():
-            self._items.pop(jti, None)
-            return None
-        return session
-
-    def delete(self, jti: str) -> None:
-        self._items.pop(jti, None)
-
-    def cleanup(self) -> None:
-        now = utc_now()
-        expired = [jti for jti, session in self._items.items() if session.expires_at <= now]
-        for jti in expired:
-            self._items.pop(jti, None)
-
-
-refresh_session_store = RefreshSessionStore()

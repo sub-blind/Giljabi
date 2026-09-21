@@ -1,90 +1,42 @@
-import type { TourItem } from "./tour";
-import { extractTourItems } from "./tour";
+import type { AccessResult, Connection, Course, CourseRoute, Intent, Place, SearchResult, Regions, PhotoResult, StoryResult, RelatedResult } from "./storyroute/types";
 
-export function getApiBase(): string {
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
-  return base.replace(/\/$/, "");
-}
+const prefix = "/api/v1/day-trip";
 
-export function getKakaoLoginUrl(): string {
-  return `${getApiBase()}/api/v1/auth/kakao/login`;
-}
-
-export type SessionUser = {
-  userId: string;
-  provider: string;
-  nickname?: string | null;
-  email?: string | null;
-};
-
-export async function fetchAuthSession(): Promise<{
-  ok: boolean;
-  authenticated: boolean;
-  hasRefreshToken?: boolean;
-  user?: SessionUser | null;
-}> {
-  const res = await fetch(`${getApiBase()}/api/v1/auth/session`, {
-    credentials: "include",
-    cache: "no-store",
-  });
-  const raw = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error("로그인 상태를 확인하지 못했습니다.");
-  }
-  return raw as {
-    ok: boolean;
-    authenticated: boolean;
-    hasRefreshToken?: boolean;
-    user?: SessionUser | null;
-  };
-}
-
-export async function logout(): Promise<void> {
-  const res = await fetch(`${getApiBase()}/api/v1/auth/logout`, {
-    method: "POST",
-    credentials: "include",
-  });
-  if (!res.ok) {
-    throw new Error("로그아웃에 실패했습니다.");
+async function request<T>(path: string, data?: unknown, signal?: AbortSignal, timeoutMs = 75000): Promise<T> {
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  signal?.addEventListener("abort", abort, { once: true });
+  if (signal?.aborted) controller.abort();
+  // Render 무료 인스턴스가 잠든 첫 요청은 다시 뜨는 데 약 1분이 걸릴 수 있다.
+  // 브라우저가 그보다 먼저 요청을 끊으면 서버가 깨어나도 화면이 연결 상태를 복구하지 못한다.
+  const timer = setTimeout(abort, timeoutMs);
+  try {
+    const response = await fetch(prefix + path, {
+      method: data === undefined ? "GET" : "POST", cache: "no-store",
+      headers: data === undefined ? undefined : { "Content-Type": "application/json" },
+      body: data === undefined ? undefined : JSON.stringify(data), signal: controller.signal,
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error?.message ?? "입력 조건을 확인하고 다시 시도해주세요.");
+    return result as T;
+  } catch (error) {
+    if (controller.signal.aborted) throw new Error("여행 정보를 준비하는 데 시간이 오래 걸리고 있어요. 잠시 뒤 다시 시도해주세요.");
+    if (error instanceof TypeError || error instanceof SyntaxError) throw new Error("서버 연결을 확인하고 다시 시도해주세요.");
+    throw error;
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener("abort", abort);
   }
 }
 
-export async function fetchPlacesByArea(params: {
-  areaCode?: number;
-  pageNo?: number;
-  numOfRows?: number;
-}): Promise<{ items: TourItem[]; raw: unknown }> {
-  const q = new URLSearchParams();
-  if (params.areaCode != null) q.set("area_code", String(params.areaCode));
-  if (params.pageNo != null) q.set("page_no", String(params.pageNo));
-  if (params.numOfRows != null) q.set("num_of_rows", String(params.numOfRows));
-
-  const url = `${getApiBase()}/api/v1/tour/list-by-area?${q.toString()}`;
-  const res = await fetch(url, { cache: "no-store" });
-  const raw = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const detail =
-      typeof raw === "object" && raw && "detail" in raw
-        ? String((raw as { detail: unknown }).detail)
-        : res.statusText;
-    throw new Error(detail || `HTTP ${res.status}`);
-  }
-  return { items: extractTourItems(raw), raw };
-}
-
-export async function fetchPlacesByKeyword(keyword: string, areaCode?: number): Promise<{ items: TourItem[]; raw: unknown }> {
-  const q = new URLSearchParams({ keyword });
-  if (areaCode != null) q.set("area_code", String(areaCode));
-
-  const url = `${getApiBase()}/api/v1/tour/list-by-keyword?${q.toString()}`;
-  const res = await fetch(url, { cache: "no-store" });
-  const raw = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const detail =
-      typeof raw === "object" && raw && "detail" in raw
-        ? String((raw as { detail: unknown }).detail)
-        : res.statusText;
-    throw new Error(detail || `HTTP ${res.status}`);
-  }
-  return { items: extractTourItems(raw), raw };
-}
+export const getStatus = (signal?: AbortSignal, timeoutMs?: number) => request<Connection>("/status", undefined, signal, timeoutMs);
+export const getRegions = (signal?: AbortSignal) => request<Regions>("/regions", undefined, signal);
+export const parseIntent = (query: string, signal?: AbortSignal) => request<{ intent: Intent; mode: "ai" | "manual"; notices: string[] }>("/intent", { query }, signal);
+export const searchPlaces = (intent: Intent, page = 1, signal?: AbortSignal) => request<SearchResult>("/places/search", { intent, page }, signal);
+export const getPlace = (id: string, signal?: AbortSignal) => request<Place>("/places/" + encodeURIComponent(id), undefined, signal);
+export const createCourse = (placeIds: string[], intent: Intent, signal?: AbortSignal) => request<Course>("/course", { placeIds, intent }, signal);
+export const getCourseRoute = (placeIds: string[], intent: Intent, signal?: AbortSignal) => request<CourseRoute>("/course/route", { placeIds, intent }, signal);
+export const searchPhotos = (city: string | null, keyword: string, page: number, signal?: AbortSignal) => request<PhotoResult>("/photos/search", { city, keyword, page }, signal);
+export const getStories = (id: string, signal?: AbortSignal) => request<StoryResult>("/places/" + encodeURIComponent(id) + "/stories", undefined, signal);
+export const getRelated = (id: string, signal?: AbortSignal) => request<RelatedResult>("/places/" + encodeURIComponent(id) + "/related", undefined, signal);
+export const getAccessibility = (id: string, signal?: AbortSignal) => request<AccessResult>("/places/" + encodeURIComponent(id) + "/accessibility", undefined, signal);

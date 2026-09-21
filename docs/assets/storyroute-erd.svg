@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="760" viewBox="0 0 1500 760" role="img" aria-labelledby="title desc">
+  <title id="title">스토리루트 PostgreSQL ERD</title>
+  <desc id="desc">사용자, 인증 세션, 코스, 코스 장소, 장소 기록의 관계를 나타낸 데이터베이스 구조도</desc>
+  <defs>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#0f172a" flood-opacity="0.12"/>
+    </filter>
+    <style>
+      .title { font: 700 30px Pretendard, "Noto Sans KR", sans-serif; fill: #0f172a; }
+      .subtitle { font: 400 15px Pretendard, "Noto Sans KR", sans-serif; fill: #64748b; }
+      .entity { filter: url(#shadow); }
+      .entity-title { font: 700 18px ui-monospace, SFMono-Regular, Consolas, monospace; fill: #ffffff; }
+      .field { font: 13px ui-monospace, SFMono-Regular, Consolas, monospace; fill: #243247; }
+      .key { font-weight: 700; fill: #7c3aed; }
+      .muted { fill: #64748b; }
+      .relation { stroke: #64748b; stroke-width: 2.2; fill: none; }
+      .relation-dot { fill: #ffffff; stroke: #64748b; stroke-width: 2.2; }
+      .relation-label-bg { fill: #ffffff; stroke: #cbd5e1; }
+      .relation-label { font: 700 13px Pretendard, "Noto Sans KR", sans-serif; fill: #334155; }
+      .legend { font: 13px Pretendard, "Noto Sans KR", sans-serif; fill: #475569; }
+    </style>
+  </defs>
+
+  <rect width="1500" height="760" rx="24" fill="#f8fafc"/>
+  <text x="34" y="48" class="title">스토리루트 PostgreSQL ERD</text>
+  <text x="34" y="75" class="subtitle">SQLAlchemy 모델과 Alembic 초기 마이그레이션 기준 · 모든 외래키 삭제 규칙은 ON DELETE CASCADE</text>
+
+  <!-- users -->
+  <g class="entity">
+    <rect x="30" y="110" width="270" height="278" rx="14" fill="#ffffff" stroke="#d8b4fe"/>
+    <path d="M44 110h242a14 14 0 0 1 14 14v36H30v-36a14 14 0 0 1 14-14z" fill="#7c3aed"/>
+    <text x="50" y="143" class="entity-title">users</text>
+    <text x="50" y="190" class="field key">PK  id</text><text x="172" y="190" class="field muted">uuid</text>
+    <text x="50" y="224" class="field">    provider</text><text x="172" y="224" class="field muted">varchar(20)</text>
+    <text x="50" y="258" class="field key">UK  provider_user_id</text>
+    <text x="50" y="292" class="field">    nickname</text><text x="172" y="292" class="field muted">nullable</text>
+    <text x="50" y="326" class="field">    created_at</text><text x="172" y="326" class="field muted">timestamptz</text>
+    <text x="50" y="360" class="field">    updated_at</text><text x="172" y="360" class="field muted">timestamptz</text>
+  </g>
+
+  <!-- courses -->
+  <g class="entity">
+    <rect x="380" y="110" width="300" height="346" rx="14" fill="#ffffff" stroke="#86efac"/>
+    <path d="M394 110h272a14 14 0 0 1 14 14v36H380v-36a14 14 0 0 1 14-14z" fill="#15803d"/>
+    <text x="400" y="143" class="entity-title">courses</text>
+    <text x="400" y="190" class="field key">PK  id</text><text x="560" y="190" class="field muted">uuid</text>
+    <text x="400" y="224" class="field key">FK  user_id</text><text x="560" y="224" class="field muted">uuid</text>
+    <text x="400" y="258" class="field">    title</text><text x="560" y="258" class="field muted">varchar(80)</text>
+    <text x="400" y="292" class="field">    intent</text><text x="560" y="292" class="field muted">jsonb</text>
+    <text x="400" y="326" class="field">    started_at</text><text x="560" y="326" class="field muted">nullable</text>
+    <text x="400" y="360" class="field">    version</text><text x="560" y="360" class="field muted">integer</text>
+    <text x="400" y="394" class="field">    created_at</text><text x="560" y="394" class="field muted">timestamptz</text>
+    <text x="400" y="428" class="field">    updated_at</text><text x="560" y="428" class="field muted">timestamptz</text>
+  </g>
+
+  <!-- course_places -->
+  <g class="entity">
+    <rect x="760" y="110" width="350" height="380" rx="14" fill="#ffffff" stroke="#fdba74"/>
+    <path d="M774 110h322a14 14 0 0 1 14 14v36H760v-36a14 14 0 0 1 14-14z" fill="#c2410c"/>
+    <text x="780" y="143" class="entity-title">course_places</text>
+    <text x="780" y="190" class="field key">PK  id</text><text x="965" y="190" class="field muted">uuid</text>
+    <text x="780" y="224" class="field key">FK  course_id</text><text x="965" y="224" class="field muted">uuid</text>
+    <text x="780" y="258" class="field">    source_service</text><text x="965" y="258" class="field muted">KorService2</text>
+    <text x="780" y="292" class="field">    content_id</text><text x="965" y="292" class="field muted">varchar(30)</text>
+    <text x="780" y="326" class="field">    content_type_id</text><text x="965" y="326" class="field muted">12 · 14 · 39</text>
+    <text x="780" y="360" class="field key">UK  position</text><text x="965" y="360" class="field muted">1 · 2 · 3</text>
+    <text x="780" y="394" class="field">    created_at</text><text x="965" y="394" class="field muted">timestamptz</text>
+    <text x="780" y="428" class="field">    updated_at</text><text x="965" y="428" class="field muted">timestamptz</text>
+    <text x="780" y="466" class="legend">코스 안에서 관광 원천 ID와 순서가 각각 유일</text>
+  </g>
+
+  <!-- place_records -->
+  <g class="entity">
+    <rect x="1190" y="110" width="280" height="278" rx="14" fill="#ffffff" stroke="#fda4af"/>
+    <path d="M1204 110h252a14 14 0 0 1 14 14v36h-280v-36a14 14 0 0 1 14-14z" fill="#be123c"/>
+    <text x="1210" y="143" class="entity-title">place_records</text>
+    <text x="1210" y="190" class="field key">PK/FK course_place_id</text>
+    <text x="1210" y="224" class="field">      visited_at</text><text x="1370" y="224" class="field muted">nullable</text>
+    <text x="1210" y="258" class="field">      memo</text><text x="1370" y="258" class="field muted">varchar(500)</text>
+    <text x="1210" y="292" class="field">      created_at</text>
+    <text x="1210" y="326" class="field">      updated_at</text>
+    <text x="1210" y="362" class="legend">장소마다 최대 한 기록</text>
+  </g>
+
+  <!-- auth_sessions -->
+  <g class="entity">
+    <rect x="30" y="490" width="320" height="260" rx="14" fill="#ffffff" stroke="#93c5fd"/>
+    <path d="M44 490h292a14 14 0 0 1 14 14v36H30v-36a14 14 0 0 1 14-14z" fill="#1d4ed8"/>
+    <text x="50" y="523" class="entity-title">auth_sessions</text>
+    <text x="50" y="570" class="field key">PK  id</text><text x="205" y="570" class="field muted">refresh jti</text>
+    <text x="50" y="602" class="field key">FK  user_id</text><text x="205" y="602" class="field muted">uuid</text>
+    <text x="50" y="634" class="field">    token_hash</text><text x="205" y="634" class="field muted">SHA-256</text>
+    <text x="50" y="666" class="field">    expires_at</text>
+    <text x="50" y="698" class="field">    revoked_at</text><text x="205" y="698" class="field muted">nullable</text>
+    <text x="50" y="730" class="field">    created_at</text>
+  </g>
+
+  <!-- relationships -->
+  <path class="relation" d="M300 246H380"/>
+  <circle class="relation-dot" cx="306" cy="246" r="5"/><circle class="relation-dot" cx="374" cy="246" r="5"/>
+  <rect class="relation-label-bg" x="312" y="226" width="56" height="26" rx="13"/>
+  <text x="340" y="244" text-anchor="middle" class="relation-label">1 : N</text>
+
+  <path class="relation" d="M680 278H760"/>
+  <circle class="relation-dot" cx="686" cy="278" r="5"/><circle class="relation-dot" cx="754" cy="278" r="5"/>
+  <rect class="relation-label-bg" x="688" y="258" width="64" height="26" rx="13"/>
+  <text x="720" y="276" text-anchor="middle" class="relation-label">1 : 1~3</text>
+
+  <path class="relation" d="M1110 246H1190"/>
+  <circle class="relation-dot" cx="1116" cy="246" r="5"/><circle class="relation-dot" cx="1184" cy="246" r="5"/>
+  <rect class="relation-label-bg" x="1114" y="226" width="72" height="26" rx="13"/>
+  <text x="1150" y="244" text-anchor="middle" class="relation-label">1 : 0..1</text>
+
+  <path class="relation" d="M165 388V490"/>
+  <circle class="relation-dot" cx="165" cy="394" r="5"/><circle class="relation-dot" cx="165" cy="484" r="5"/>
+  <rect class="relation-label-bg" x="177" y="423" width="56" height="26" rx="13"/>
+  <text x="205" y="441" text-anchor="middle" class="relation-label">1 : N</text>
+
+  <text x="410" y="707" class="legend">PK 기본키 · FK 외래키 · UK 복합 유일 제약에 참여 · course_places의 최소 1개 및 연속 순서는 API가 검증</text>
+  <text x="410" y="731" class="legend">관광 상세 원문·사진·경로는 저장하지 않으며, content_id는 TourAPI 원천을 가리키는 논리 식별자입니다.</text>
+</svg>
