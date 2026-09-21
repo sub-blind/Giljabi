@@ -1,0 +1,40 @@
+flowchart LR
+    User["사용자<br/>모바일·PC 브라우저"]
+
+    subgraph Browser["브라우저"]
+        UI["Next.js React UI<br/>지도·문장·사진·코스·여행"]
+        Local["localStorage<br/>비회원 코스·방문 완료·메모"]
+        Leaflet["Leaflet 지도"]
+        UI <--> Local
+        UI --> Leaflet
+    end
+
+    subgraph Vercel["Vercel"]
+        Next["Next.js 정적 화면<br/>day-trip · auth · account rewrite"]
+    end
+
+    subgraph Render["Render"]
+        API["FastAPI<br/>검증·요청 제한·오류 표준화"]
+        Trip["여행·콘텐츠·경로 서비스"]
+        Auth["카카오 OAuth·계정 코스 API"]
+        API --> Trip
+        API --> Auth
+    end
+
+    DB[("PostgreSQL<br/>사용자·세션·계정 코스")]
+    Tour["한국관광공사 TourAPI<br/>관광지·사진·오디·연관·무장애"]
+    OpenAI["OpenAI Responses API<br/>선택적 문장 해석·근거 선택"]
+    Kakao["카카오<br/>OAuth·자동차 경로·외부 길찾기"]
+    OSM["OpenStreetMap<br/>지도 타일"]
+
+    User --> UI
+    UI -->|"동일 출처의 세 API 경로"| Next
+    Next -->|"서버 측 rewrite"| API
+    Auth <--> DB
+    Trip --> Tour
+    Trip -. "설정된 경우" .-> OpenAI
+    Trip --> Kakao
+    Auth --> Kakao
+    Leaflet --> OSM
+    UI -->|"원본 미디어·길찾기 화면"| Tour
+    UI --> Kakao

@@ -1,4 +1,7 @@
 .env
+.env.*
+!.env.example
+.render.env
 .venv/
 venv/
 __pycache__/
@@ -13,5 +16,8 @@ build/
 web/node_modules/
 web/.next/
 web/.next-preview/
+web/.next-*/
 web/.env.local
 *.tsbuildinfo
+.tmp/
+output/

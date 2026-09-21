@@ -73,23 +73,54 @@ export function PhotoExplorer({ cities, ready, connectionState, busy: tripBusy, 
   const [result, setResult] = useState<PhotoResult | null>(null);
   const [resultVersion, setResultVersion] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [slow, setSlow] = useState(false);
   const [error, setError] = useState("");
   const controller = useRef<AbortController | null>(null);
   const requestId = useRef(0);
-  useEffect(() => () => { controller.current?.abort(); requestId.current += 1; }, []);
+  const slowTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    controller.current?.abort();
+    if (slowTimer.current) clearTimeout(slowTimer.current);
+    requestId.current += 1;
+  }, []);
 
-  async function load(more = false) {
+  async function load(more = false, withoutKeyword = false) {
     controller.current?.abort();
     const current = new AbortController(), id = ++requestId.current;
-    controller.current = current; setBusy(true); setError("");
+    controller.current = current; setBusy(true); setSlow(false); setError("");
+    if (slowTimer.current) clearTimeout(slowTimer.current);
+    slowTimer.current = setTimeout(() => {
+      if (id === requestId.current) setSlow(true);
+    }, 8000);
     try {
-      const value = await searchPhotos(more ? result!.appliedCity : city || null,
-        more ? result!.appliedKeyword : keyword.trim(), more ? result!.page + 1 : 1, current.signal);
+      const requestedCity = more ? result!.appliedCity : withoutKeyword && result ? result.appliedCity : city || null;
+      const value = await searchPhotos(requestedCity,
+        more ? result!.appliedKeyword : withoutKeyword ? "" : keyword.trim(), more ? result!.page + 1 : 1, current.signal);
       if (id !== requestId.current) return;
       setResult(more ? { ...value, photos: [...new Map([...result!.photos, ...value.photos].map(photo => [photo.id, photo])).values()] } : value);
       if (!more) setResultVersion(id);
     } catch (err) { if (id === requestId.current && !current.signal.aborted) setError((err as Error).message); }
-    finally { if (id === requestId.current) setBusy(false); }
+    finally {
+      if (slowTimer.current) clearTimeout(slowTimer.current);
+      if (id === requestId.current) { setBusy(false); setSlow(false); controller.current = null; }
+    }
+  }
+
+  function cancelLoad() {
+    if (!controller.current) return;
+    controller.current.abort();
+    controller.current = null;
+    requestId.current += 1;
+    if (slowTimer.current) clearTimeout(slowTimer.current);
+    setBusy(false); setSlow(false);
+    setError("사진 조회를 취소했어요. 지역과 키워드는 그대로 남아 있어요.");
+  }
+
+  function retryWithoutKeyword() {
+    if (!result) return;
+    setCity(result.appliedCity ?? "");
+    setKeyword("");
+    void load(false, true);
   }
   return <section className={styles.photoSection} aria-labelledby="photos-heading">
     <div className={styles.workspaceHeading}><h2 id="photos-heading">마음에 드는 풍경부터 찾아볼까요?</h2>
@@ -102,14 +133,16 @@ export function PhotoExplorer({ cities, ready, connectionState, busy: tripBusy, 
       <button type="submit" className={styles.primary} disabled={busy || !ready}>{busy ? "사진 조회 중…" : "사진 둘러보기"}</button>
     </form>
     {!ready && <p className={styles.small}>{connectionState === "connecting"
-      ? "여행 정보를 준비하고 있어요. 연결되면 사진 조회 버튼이 자동으로 열려요."
+      ? "사진 조회를 바로 시작할 수 있어요. 첫 요청만 조금 오래 걸릴 수 있어요."
       : connectionState === "error" ? "서버에 다시 연결한 뒤 관광사진을 볼 수 있어요."
       : "관광사진 기능을 준비 중이에요. 지도로 장소를 찾아주세요."}</p>}
+    {busy && <div className={styles.photoProgress} role="status" aria-live="polite"><span>{slow ? "관광사진과 촬영지를 계속 확인하고 있어요. 이전 사진은 그대로 유지됩니다." : "관광사진을 찾고 있어요…"}</span>{slow && <button className={styles.secondary} type="button" onClick={cancelLoad}>사진 조회 취소</button>}</div>}
     {error && <p className={styles.error} role="alert">{error}{result ? " 이전에 조회한 사진은 유지했어요." : ""}</p>}
     {result && <>
       <p className={styles.small}>조회 조건: {result.appliedCity ?? "강원도 전체"} · {result.appliedKeyword} · {new Date(result.retrievedAt).toLocaleString("ko-KR")}</p>
       {result.notices.map(item => <p key={item} className={styles.small}>{item}</p>)}
       <PhotoCollection key={resultVersion} photos={result.photos} busy={tripBusy} onExplore={onExplore} />
+      {!result.photos.length && !!result.appliedKeyword.trim() && <button className={`${styles.secondary} ${styles.full}`} type="button" disabled={busy} onClick={retryWithoutKeyword}>키워드 없이 {result.appliedCity || "강원도"} 사진 보기</button>}
       {result.hasMore && <button className={`${styles.secondary} ${styles.full}`} type="button" disabled={busy} onClick={() => void load(true)}>{busy ? "풍경 더 찾는 중…" : "다른 풍경 더 보기"}</button>}
     </>}
   </section>;

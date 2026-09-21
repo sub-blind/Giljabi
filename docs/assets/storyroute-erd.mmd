@@ -1,0 +1,53 @@
+erDiagram
+    USERS ||--o{ AUTH_SESSIONS : "로그인 세션"
+    USERS ||--o{ COURSES : "코스 소유"
+    COURSES ||--|{ COURSE_PLACES : "장소 1~3개"
+    COURSE_PLACES ||--o| PLACE_RECORDS : "방문 기록"
+
+    USERS {
+        uuid id PK
+        varchar provider
+        varchar provider_user_id UK
+        varchar nickname "NULL 허용"
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    AUTH_SESSIONS {
+        varchar id PK "refresh jti"
+        uuid user_id FK
+        char token_hash
+        timestamptz expires_at
+        timestamptz revoked_at "NULL 허용"
+        timestamptz created_at
+    }
+
+    COURSES {
+        uuid id PK
+        uuid user_id FK
+        varchar title
+        jsonb intent
+        timestamptz started_at "NULL 허용"
+        integer version
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    COURSE_PLACES {
+        uuid id PK
+        uuid course_id FK
+        varchar source_service
+        varchar content_id
+        varchar content_type_id
+        smallint position
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    PLACE_RECORDS {
+        uuid course_place_id PK,FK
+        timestamptz visited_at "NULL 허용"
+        varchar memo
+        timestamptz created_at
+        timestamptz updated_at
+    }

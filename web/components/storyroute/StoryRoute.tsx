@@ -54,9 +54,11 @@ export default function StoryRoute() {
   const [savedCoursesOpen, setSavedCoursesOpen] = useState(false);
   const [accountBusy, setAccountBusy] = useState(false);
   const [pendingRestore, setPendingRestore] = useState<boolean | null>(null);
+  const [slowRequest, setSlowRequest] = useState(false);
   const lock = useRef(false);
   const requestId = useRef(0);
   const pending = useRef<AbortController | null>(null);
+  const slowTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const historyReady = useRef(false);
   const historyNavigation = useRef(false);
   const previousPhase = useRef<Phase>("create");
@@ -78,7 +80,12 @@ export default function StoryRoute() {
 
   useEffect(() => {
     try { setHasSaved(!!loadCourse()); } catch { setMessage("저장 정보를 읽지 못했어요. 새 코스를 만들 수 있어요."); }
-    return () => { pending.current?.abort(); lock.current = false; requestId.current += 1; };
+    return () => {
+      pending.current?.abort();
+      if (slowTimer.current) clearTimeout(slowTimer.current);
+      lock.current = false;
+      requestId.current += 1;
+    };
   }, []);
 
   useEffect(() => {
@@ -168,9 +175,35 @@ export default function StoryRoute() {
     if (lock.current) return;
     lock.current = true; const id = ++requestId.current;
     const controller = new AbortController(); pending.current = controller;
+    if (slowTimer.current) clearTimeout(slowTimer.current);
+    setSlowRequest(false);
+    slowTimer.current = setTimeout(() => {
+      if (id === requestId.current) setSlowRequest(true);
+    }, 8000);
     update({ busy: kind }); setError(""); setMessage("");
     try { await task(id, controller.signal); } catch (err) { if (id === requestId.current) setError(err instanceof Error ? err.message : "다시 시도해주세요."); }
-    finally { if (id === requestId.current) { lock.current = false; update({ busy: "idle" }); } }
+    finally {
+      if (slowTimer.current) clearTimeout(slowTimer.current);
+      if (id === requestId.current) {
+        lock.current = false;
+        pending.current = null;
+        setSlowRequest(false);
+        update({ busy: "idle" });
+      }
+    }
+  }
+
+  function cancelCurrentRequest() {
+    if (!pending.current || state.busy === "idle") return;
+    pending.current.abort();
+    pending.current = null;
+    requestId.current += 1;
+    lock.current = false;
+    if (slowTimer.current) clearTimeout(slowTimer.current);
+    setSlowRequest(false);
+    update({ busy: "idle" });
+    setError("");
+    setMessage("요청을 취소했어요. 조건과 기존 결과는 그대로 남아 있어요.");
   }
 
   function pick(id: string) {
@@ -384,10 +417,11 @@ export default function StoryRoute() {
         onClick={() => { if (phase.id === "course") { if (state.course) update({ phase: "course" }); else void build(); } else if (phase.id === "create") openCreate(); else update({ phase: phase.id }); }}><span>{index + 1}</span>{phase.label}</button>)}</nav>
       {connection?.testing && <p className={styles.warning}>기능 검증용 테스트 데이터예요. 실제 관광 장소가 아니에요.</p>}
       {connection && !connection.tourismReady && <p className={styles.warning}>관광 데이터 연결을 준비 중이에요. 지금은 여행 조건을 입력하고 수정할 수 있어요.</p>}
-      {connectionState === "connecting" && <div className={styles.connectionNotice} role="status" aria-live="polite"><RefreshCw className={styles.connectionSpinner} size={18} aria-hidden="true" /><div><strong>여행 정보를 준비하고 있어요</strong><span>무료 서버가 잠들어 있었다면 보통 30~60초 걸릴 수 있어요. 연결되면 검색 버튼이 자동으로 열려요.</span></div></div>}
+      {connectionState === "connecting" && <div className={styles.connectionNotice} role="status" aria-live="polite"><RefreshCw className={styles.connectionSpinner} size={18} aria-hidden="true" /><div><strong>여행 서버를 미리 깨우고 있어요</strong><span>조건을 고르고 검색을 바로 시작해도 돼요. 첫 요청만 30~60초 걸릴 수 있어요.</span></div></div>}
       {connectionState === "error" && <div className={styles.connectionError} role="alert"><div><strong>여행 서버에 연결하지 못했어요</strong><span>네트워크를 확인한 뒤 다시 연결해주세요. 선택한 조건은 그대로 유지돼요.</span></div><button className={styles.secondary} type="button" disabled={busy} onClick={() => setConnectionAttempt(value => value + 1)}><RefreshCw size={15} aria-hidden="true" />다시 연결</button></div>}
       {auth.error && <p className={styles.warning}>{auth.error}</p>}
       <div className={styles.status} role="status" aria-live="polite">{message || busyMessage}</div>
+      {slowRequest && busy && <div className={styles.slowRequest} role="status" aria-live="polite"><div><strong>조금 더 확인하고 있어요</strong><span>{state.busy === "intent" ? "서버를 깨운 뒤 여행 문장을 해석하고 있어요." : state.busy === "search" ? "한국관광공사에서 실제 장소를 확인하고 있어요." : state.busy === "course" || state.busy === "restore" ? "선택한 장소를 다시 확인하고 코스를 정리하고 있어요." : "현재 순서의 자동차 경로를 확인하고 있어요."} 기다리기 어렵다면 취소해도 입력과 기존 결과는 사라지지 않아요.</span></div><button className={styles.secondary} type="button" onClick={cancelCurrentRequest}>요청 취소</button></div>}
       {error && <p className={styles.error} role="alert">{error}</p>}
       {notices.map((item, index) => <p key={index} className={styles.notice}>{item}</p>)}
 
@@ -396,8 +430,10 @@ export default function StoryRoute() {
           <p className={styles.heroText}>마음에 드는 곳을 최대 세 곳 담아, 나만의 여행을 이어가세요.</p></section>
         <SearchWorkspace mode={searchMode} onMode={setSearchMode} query={state.query} onQuery={query => update({ query })}
           intent={state.intent} intentMode={state.mode} onIntent={intent => update({ intent })} cities={cities}
-          busy={busy} parsing={state.busy === "intent"} connectionState={connectionState} tourismReady={connectionState === "ready" && !!connection?.tourismReady}
-          aiReady={connectionState === "ready" && connection ? connection.aiReady : null} photosReady={connectionState === "ready" && !!connection?.photosReady}
+          busy={busy} parsing={state.busy === "intent"} connectionState={connectionState}
+          tourismReady={connectionState === "connecting" || (connectionState === "ready" && !!connection?.tourismReady)}
+          aiReady={connectionState === "connecting" ? true : connectionState === "ready" && connection ? connection.aiReady : false}
+          photosReady={connectionState === "connecting" || (connectionState === "ready" && !!connection?.photosReady)}
           hasSelection={!!state.selectedIds.length} onSearch={() => void search()} onPhoto={explore}
           onCity={city => {
             update({ intent: { ...state.intent, city, keywords: [], preferences: [], unsupportedConditions: [] }, mode: "manual", intentReady: true });

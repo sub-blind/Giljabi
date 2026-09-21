@@ -31,7 +31,8 @@ export function IntentEditor({ intent, cities, mode, busy, searchReady, connecti
     </div>}
     {!!intent.unsupportedConditions.length && <div className={styles.warning}><strong>확인할 수 없는 조건</strong><ul>{intent.unsupportedConditions.map((item, index) => <li key={index}>{item}</li>)}</ul></div>}
     <div className={styles.searchSubmit}><p>{!searchReady
-      ? connectionState === "connecting" ? "여행 정보를 준비하고 있어요. 연결되면 검색 버튼이 자동으로 열려요." : "서버에 다시 연결한 뒤 장소를 찾을 수 있어요."
+      ? "서버에 다시 연결한 뒤 장소를 찾을 수 있어요."
+      : connectionState === "connecting" ? "검색을 바로 시작할 수 있어요. 잠든 서버를 깨우는 첫 검색만 조금 오래 걸릴 수 있어요."
       : hasSelection ? "새로 검색하면 담아둔 장소가 초기화돼요. 검색이 실패하면 이전 결과를 유지해요." : "장소를 고른 뒤 방문 순서와 이동 경로를 정해요."}</p>
       <button className={styles.primary} type="button" onClick={onSearch} disabled={busy || !searchReady}>{busy ? "장소를 찾고 있어요…" : !searchReady ? "서버 연결 대기 중…" : "장소 찾아보기 →"}</button></div>
   </section>;

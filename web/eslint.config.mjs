@@ -23,5 +23,5 @@ export default defineConfig([
       "@typescript-eslint/no-require-imports": "off",
     },
   },
-  globalIgnores(["next-env.d.ts", ".next/**", ".next-preview/**"]),
+  globalIgnores(["next-env.d.ts", ".next/**", ".next-*/**"]),
 ]);

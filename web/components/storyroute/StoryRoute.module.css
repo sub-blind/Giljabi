@@ -23,6 +23,10 @@
 .connectionNotice > div,.connectionError > div { display:flex; flex-direction:column; gap:4px; flex:1; line-height:1.55; }
 .connectionNotice strong,.connectionError strong { color:var(--sr-ink); }
 .connectionError { justify-content:space-between; border-color:#f1c9bd; background:#fff1ec; color:#7d493d; }
+.slowRequest,.photoProgress { display:flex; align-items:center; justify-content:space-between; gap:14px; margin:10px 0 18px; padding:14px 16px; border:1px solid #ead7ae; border-radius:12px; background:#fff8e8; color:#6f5420; font-size:13px; line-height:1.6; }
+.slowRequest > div { display:flex; flex-direction:column; gap:4px; min-width:0; }
+.slowRequest strong { color:var(--sr-ink); }
+.slowRequest button,.photoProgress button { flex:none; }
 .connectionSpinner { flex:none; animation:connection-spin 1.2s linear infinite; }
 @keyframes connection-spin { to { transform:rotate(360deg); } }
 .eyebrow { color:var(--sr-teal); font-size:12px; letter-spacing:1px; }
@@ -255,6 +259,8 @@
   .map { height:340px; }
   .courseBody .reason { font-size:13px; }
   .photoFilters { gap:12px; }
+  .slowRequest,.photoProgress { align-items:stretch; flex-direction:column; }
+  .slowRequest button,.photoProgress button { width:100%; }
 }
 
 .routePanel { background:var(--sr-paper); border:1px solid var(--sr-line); border-radius:18px; padding:24px 26px; margin-bottom:24px; min-width:0; }

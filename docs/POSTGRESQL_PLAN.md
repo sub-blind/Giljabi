@@ -79,9 +79,11 @@ docker compose up -d --wait
 
 17:03 Docker 컨테이너 전환 후 동일한 서버 환경 설정으로 한국어 임시 데이터 저장·수정·조회·정리와 위 연결 확인 API의 HTTP 200을 다시 확인했다. 백엔드는 재시작하지 않았으며 이전 연결 풀에서 새 PostgreSQL로 연결이 복구됐다.
 
-## 비용을 줄이는 운영 구성
+## 운영 구성과 초기 검토 이력
 
-권장 구성은 Vercel Hobby 프런트, Render Free FastAPI, Supabase Free PostgreSQL이다. 배포 업체와 DB 프로젝트는 아직 생성하지 않았으며 무료 한도 안에서 월 고정 비용 0원을 목표로 한다. 외부 AI·길찾기 등 API 사용료는 호스팅 비용과 별도로 관리한다.
+현재 프런트는 Vercel, FastAPI는 Render에 배포했다. PostgreSQL은 백엔드의 `DATABASE_URL`로만 연결하며 공급자와 비밀번호를 소스·문서에 기록하지 않는다. 운영 DB를 바꾸더라도 동일한 Alembic 마이그레이션과 `/api/v1/health/database` 확인 절차를 사용한다. 외부 AI·길찾기 등의 API 사용량은 호스팅과 별도로 관리한다.
+
+아래 Supabase 내용은 9월 18일 무료 운영 구성을 검토할 때 남긴 후보 조사다. 현재 운영 DB 공급자를 뜻하지 않는다.
 
 9월 18일 [Supabase 공식 요금표](https://supabase.com/pricing) 확인 기준으로 Free 요금제는 PostgreSQL DB 500MB, 파일 저장소 1GB, 송신량 5GB를 포함한다. 리뷰 사진의 파일 저장소는 해당 기능을 구현할 때 사용한다. 무료 프로젝트는 한 주 동안 활동이 부족하면 일시 중지될 수 있고 자동 백업은 제공되지 않는다. 이용량을 확인하고 필요한 데이터는 별도로 내보낸다. [프로젝트 일시 중지 안내](https://supabase.com/docs/guides/platform/free-project-pausing)
 

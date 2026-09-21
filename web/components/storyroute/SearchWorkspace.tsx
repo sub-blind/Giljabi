@@ -50,11 +50,11 @@ export function SearchWorkspace({ mode, onMode, query, onQuery, intent, intentMo
           <div className={styles.examples} aria-label="여행 문장 예시">{["강원도 바다 보고 카페 가기", "춘천에서 박물관 구경하고 식사하기"].map(example =>
             <button key={example} type="button" disabled={busy} onClick={() => { onQuery(example); document.getElementById("trip-query")?.focus(); }}>{example}<ArrowRight size={13} aria-hidden="true" /></button>)}</div>
           <div className={styles.searchSubmit}>
-            <p>{connectionState === "connecting" ? "여행 정보를 준비하고 있어요. 연결되면 문장 해석 버튼이 자동으로 열려요."
+            <p>{connectionState === "connecting" ? "바로 시작할 수 있어요. 첫 문장 해석은 잠든 서버를 깨우느라 조금 오래 걸릴 수 있어요."
               : connectionState === "error" ? "서버에 다시 연결한 뒤 문장으로 찾을 수 있어요."
               : aiReady === false ? "문장 해석을 준비 중이에요. 지금은 조건을 직접 골라주세요." : "해석한 조건은 검색 전에 수정할 수 있어요."}</p>
             {aiReady === false ? <button className={styles.primary} type="button" disabled={busy} onClick={() => { onMode("conditions"); requestAnimationFrame(() => document.getElementById("intent-title")?.focus()); }}>직접 조건 고르기<ArrowRight size={17} aria-hidden="true" /></button> :
-              <button className={styles.primary} type="submit" disabled={busy || aiReady === null}>{parsing ? "조건 확인 중…" : connectionState === "connecting" ? "서버 연결 대기 중…" : "여행 조건 확인"}<ArrowRight size={17} aria-hidden="true" /></button>}
+              <button className={styles.primary} type="submit" disabled={busy || aiReady === null}>{parsing ? "조건 확인 중…" : "여행 조건 확인"}<ArrowRight size={17} aria-hidden="true" /></button>}
           </div>
         </form>
       </div>
