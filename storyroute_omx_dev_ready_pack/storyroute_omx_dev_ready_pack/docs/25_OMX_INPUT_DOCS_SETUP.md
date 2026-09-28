@@ -34,8 +34,6 @@ OmX가 긴 문서 묶음을 안정적으로 읽도록 `/input/docs`에 **정리�
 - `04_UI_FINAL_SPEC.md`
 - `05_UI_STATE_MATRIX.md`
 - `06_COMPONENT_CATALOG.md`
-- `STORYROUTE_UI_FINAL_HANDOFF.html`
-- `STORYROUTE_UI_FINAL_PROTOTYPE.html`
 
 ### `architecture/`
 - `07_TECH_STACK_FINAL.md`

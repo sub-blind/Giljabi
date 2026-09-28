@@ -11,8 +11,6 @@ Read these files in order:
 8. /input/docs/api/12_API_CONTRACT_BLUEPRINT.md
 9. /input/docs/api/openapi.yaml
 10. /input/docs/execution/16_VALIDATION_AND_DOD_FINAL.md
-11. /input/docs/reference/STORYROUTE_UI_FINAL_PROTOTYPE.html if you need visual grounding
-
 Implement:
 - apps/web route `/`
 - apps/web route `/search`
