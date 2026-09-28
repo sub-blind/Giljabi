@@ -29,8 +29,6 @@ copy_if_exists "$SOURCE_DIR/docs/23_PRODUCT_GLOSSARY.md" "$INPUT_DIR/product/"
 copy_if_exists "$SOURCE_DIR/docs/04_UI_FINAL_SPEC.md" "$INPUT_DIR/ui/"
 copy_if_exists "$SOURCE_DIR/docs/05_UI_STATE_MATRIX.md" "$INPUT_DIR/ui/"
 copy_if_exists "$SOURCE_DIR/docs/06_COMPONENT_CATALOG.md" "$INPUT_DIR/ui/"
-copy_if_exists "$SOURCE_DIR/docs/STORYROUTE_UI_FINAL_HANDOFF.html" "$INPUT_DIR/reference/"
-copy_if_exists "$SOURCE_DIR/docs/STORYROUTE_UI_FINAL_PROTOTYPE.html" "$INPUT_DIR/reference/"
 
 copy_if_exists "$SOURCE_DIR/docs/07_TECH_STACK_FINAL.md" "$INPUT_DIR/architecture/"
 copy_if_exists "$SOURCE_DIR/docs/08_SYSTEM_ARCHITECTURE_FINAL.md" "$INPUT_DIR/architecture/"

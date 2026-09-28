@@ -21,8 +21,6 @@
 18. data/10_DATA_MODEL_FINAL.md
 19. data/11_ETL_SYNC_RUNBOOK.md
 20. analytics/13_EVENT_LOG_SCHEMA.md
-21. reference/STORYROUTE_UI_FINAL_PROTOTYPE.html
-
 ## Rules
 - `/input/docs` is read-only.
 - `/workspace` is the only writable repo root.

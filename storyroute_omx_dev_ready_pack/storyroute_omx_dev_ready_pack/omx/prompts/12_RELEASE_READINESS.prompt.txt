@@ -8,8 +8,6 @@ Read these files:
 5. /input/docs/execution/15_IMPLEMENTATION_BACKLOG_FINAL.md
 6. /input/docs/execution/16_VALIDATION_AND_DOD_FINAL.md
 7. /input/docs/product/21_RELEASE_SCOPE_AND_MILESTONES.md
-8. /input/docs/reference/STORYROUTE_UI_FINAL_PROTOTYPE.html
-
 Your job:
 - audit route completeness
 - audit API contract completeness
