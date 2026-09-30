@@ -495,7 +495,7 @@ export default function StoryRoute() {
           {!state.places.length && <div className={styles.empty}><h2>담을 장소를 찾지 못했어요</h2><p>다른 지역이나 장소 유형을 골라보세요.</p><button className={styles.teal} type="button" onClick={() => update({ phase: "create" })}>조건 바꾸기</button></div>}
           {hiddenPlaceCount > 0 && <button className={`${styles.secondary} ${styles.full}`} type="button" disabled={busy} onClick={() => setVisiblePlaceCount(count => Math.min(count + 6, state.places.length))}>후보 {Math.min(6, hiddenPlaceCount)}개 더 보기</button>}
           {!hiddenPlaceCount && state.hasMore && <button className={`${styles.secondary} ${styles.full}`} type="button" disabled={busy} onClick={() => void search(true)}>다음 검색 결과 불러오기</button>}
-        </section><aside className={`${styles.panel} ${styles.selectionTray}`} aria-label="선택한 장소"><div className={styles.row}><h2>나의 하루</h2><span className={styles.tag}>{selected.length} / 3곳</span></div>
+        </section><aside id="selected-places" className={`${styles.panel} ${styles.selectionTray} ${!selected.length ? styles.selectionTrayEmpty : ""}`} aria-label="선택한 장소"><div className={styles.row}><h2>나의 하루</h2><span className={styles.tag}>{selected.length} / 3곳</span></div>
           {selected.map((place, index) => <div className={styles.selectedStop} key={place.id}><strong>{index + 1}. {place.name}</strong><div className={styles.stopActions}>
             <button className={styles.textButton} type="button" disabled={busy} onClick={() => replace(place.id)} aria-label={`${place.name} 다른 장소로 바꾸기`}><Shuffle size={14} aria-hidden="true" />다른 장소</button>
             <button className={styles.textButton} type="button" disabled={busy} onClick={() => pick(place.id)} aria-label={`${place.name} 빼기`}><Trash2 size={14} aria-hidden="true" />빼기</button></div></div>)}
@@ -518,8 +518,8 @@ export default function StoryRoute() {
           onDetail={(id, tab = "intro") => setDetail({ id, tab })} onReplace={(currentId, nextId) => void replaceCoursePlace(currentId, nextId)}
           onLoadAlternatives={() => void loadCourseAlternatives()} />
       </> : null}
-      {state.phase === "discover" && !!selected.length && <div className={styles.mobileDock}><div><strong>{selected.length}곳 담았어요</strong><small>방문 순서와 길찾기를 확인하세요</small></div>
-        <button className={styles.primary} type="button" disabled={busy} onClick={() => void build()}>{state.busy === "course" ? "확인 중…" : "코스 준비"}<ArrowRight size={16} aria-hidden="true" /></button></div>}
+      {state.phase === "discover" && !!selected.length && <div className={styles.mobileDock} role="status" aria-live="polite"><div><strong>{selected.length === 1 ? `${selected[0].name} 담았어요` : `${selected.length}곳 담았어요`}</strong><small>지금 선택한 장소로 방문 순서를 만들어요</small></div>
+        <button className={styles.primary} type="button" disabled={busy} onClick={() => void build()}>{state.busy === "course" ? "확인 중…" : "코스 만들기"}<ArrowRight size={16} aria-hidden="true" /></button></div>}
     </main>
     <SiteFooter />
     {detail && <PlaceDetailPanel key={`${detail.id}-${detail.tab}`} id={detail.id} initialTab={detail.tab} onClose={() => setDetail(null)} onCandidate={addCandidate} />}

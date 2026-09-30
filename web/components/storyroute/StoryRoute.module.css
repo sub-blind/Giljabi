@@ -244,7 +244,7 @@
   .placeBody { padding:18px; }
   .mobileDock { position:fixed; display:flex; align-items:center; justify-content:space-between; gap:12px; bottom:0; left:0; right:0; z-index:1000; border-top:1px solid var(--sr-line); background:#fffffff5; backdrop-filter:blur(12px); padding:12px 18px calc(12px + env(safe-area-inset-bottom)); box-shadow:0 -8px 24px #17233108; }
   .mobileDock > div { min-width:0; }
-  .mobileDock strong { font-size:13px; }
+  .mobileDock strong { display:block; overflow:hidden; font-size:13px; text-overflow:ellipsis; white-space:nowrap; }
   .mobileDock small { display:block; font-size:10px; color:var(--sr-muted); margin-top:4px; overflow-wrap:anywhere; }
   .mobileDock button { flex:none; }
   .journeyPanel { padding:20px; }
@@ -548,7 +548,8 @@
   .placeBody .address { display:-webkit-box; overflow:hidden; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-height:1.5; }
   .cardActions { margin-top:auto; padding-top:8px; gap:5px; }
   .cardActions > button { min-height:40px; padding:7px 5px; font-size:11px; }
-  .selectionTray { grid-row:1; position:static; }
+  .selectionTray { grid-row:auto; position:static; }
+  .selectionTrayEmpty { display:none; }
   .regionExplorer { grid-template-columns:minmax(0,1fr); min-height:0; margin-top:24px; border-radius:20px; }
   .regionCopy { padding:26px 22px 4px; }
   .regionCopy h2 { max-width:290px; margin-top:14px; font-size:23px; }
