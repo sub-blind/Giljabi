@@ -1,5 +1,6 @@
 import { ArrowRight, Images, MessageSquareText, SlidersHorizontal } from "lucide-react";
 import type { Intent, TravelPhoto } from "@/lib/storyroute/types";
+import type { ConnectionState } from "@/lib/storyroute/connection";
 import { IntentEditor } from "./IntentEditor";
 import { PhotoExplorer } from "./PhotoExplorer";
 import { GangwonRegionMap } from "./GangwonRegionMap";
@@ -13,13 +14,13 @@ const searchModes = [
 ] as const;
 
 export function SearchWorkspace({ mode, onMode, query, onQuery, intent, intentMode, onIntent, cities,
-  busy, parsing, connectionState, tourismReady, aiReady, photosReady, hasSelection, onParse, onSearch, onCity, onPhoto }: {
+  busy, parsing, connectionState, tourismReady, aiReady, photosReady, hasSelection, onParse, onSearch, onCity, onPhoto, onReconnect }: {
   mode: SearchMode; onMode: (mode: SearchMode) => void; query: string; onQuery: (query: string) => void;
   intent: Intent; intentMode: "ai" | "manual"; onIntent: (intent: Intent) => void;
   cities: { code: string; name: string }[]; busy: boolean; parsing: boolean;
-  connectionState: "connecting" | "ready" | "error"; tourismReady: boolean; aiReady: boolean | null;
+  connectionState: ConnectionState; tourismReady: boolean; aiReady: boolean | null;
   photosReady: boolean; hasSelection: boolean; onParse: () => void; onSearch: () => void;
-  onCity: (city: string | null) => void; onPhoto: (photo: TravelPhoto) => void;
+  onCity: (city: string | null) => void; onPhoto: (photo: TravelPhoto) => void; onReconnect: () => void;
 }) {
   return <>
     <section className={styles.searchWorkspace} aria-label="여행 장소 찾기">
@@ -51,15 +52,15 @@ export function SearchWorkspace({ mode, onMode, query, onQuery, intent, intentMo
             <button key={example} type="button" disabled={busy} onClick={() => { onQuery(example); document.getElementById("trip-query")?.focus(); }}>{example}<ArrowRight size={13} aria-hidden="true" /></button>)}</div>
           <div className={styles.searchSubmit}>
             <p>{connectionState === "connecting" ? "바로 시작할 수 있어요. 첫 문장 해석은 잠든 서버를 깨우느라 조금 오래 걸릴 수 있어요."
-              : connectionState === "error" ? "서버에 다시 연결한 뒤 문장으로 찾을 수 있어요."
+              : connectionState === "error" ? "버튼을 누르면 서버 연결과 문장 해석을 함께 다시 시도해요."
               : aiReady === false ? "문장 해석을 준비 중이에요. 지금은 조건을 직접 골라주세요." : "해석한 조건은 검색 전에 수정할 수 있어요."}</p>
             {aiReady === false ? <button className={styles.primary} type="button" disabled={busy} onClick={() => { onMode("conditions"); requestAnimationFrame(() => document.getElementById("intent-title")?.focus()); }}>직접 조건 고르기<ArrowRight size={17} aria-hidden="true" /></button> :
-              <button className={styles.primary} type="submit" disabled={busy || aiReady === null}>{parsing ? "조건 확인 중…" : "여행 조건 확인"}<ArrowRight size={17} aria-hidden="true" /></button>}
+              <button className={styles.primary} type="submit" disabled={busy || aiReady === null}>{parsing ? "조건 확인 중…" : connectionState === "error" ? "다시 연결하며 조건 확인" : "여행 조건 확인"}<ArrowRight size={17} aria-hidden="true" /></button>}
           </div>
         </form>
       </div>
       <div id="search-pane-photos" role="tabpanel" aria-labelledby="search-tab-photos" hidden={mode !== "photos"} className={styles.workspacePane}>
-        <PhotoExplorer cities={cities} ready={photosReady} connectionState={connectionState} busy={busy} onExplore={onPhoto} />
+        <PhotoExplorer cities={cities} ready={photosReady} connectionState={connectionState} busy={busy} onExplore={onPhoto} onReconnect={onReconnect} />
       </div>
     </section>
   </>;

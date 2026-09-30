@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { searchPhotos } from "@/lib/api";
 import type { PhotoResult, TravelPhoto } from "@/lib/storyroute/types";
+import type { ConnectionState } from "@/lib/storyroute/connection";
 import styles from "./StoryRoute.module.css";
 
 function PhotoGallery({ photos, busy, onExplore, onFailed }: {
@@ -64,9 +65,9 @@ function PhotoCollection({ photos, busy, onExplore }: {
   </>;
 }
 
-export function PhotoExplorer({ cities, ready, connectionState, busy: tripBusy, onExplore }: {
-  cities: { code: string; name: string }[]; ready: boolean; connectionState: "connecting" | "ready" | "error";
-  busy: boolean; onExplore: (photo: TravelPhoto) => void;
+export function PhotoExplorer({ cities, ready, connectionState, busy: tripBusy, onExplore, onReconnect }: {
+  cities: { code: string; name: string }[]; ready: boolean; connectionState: ConnectionState;
+  busy: boolean; onExplore: (photo: TravelPhoto) => void; onReconnect: () => void;
 }) {
   const [city, setCity] = useState("");
   const [keyword, setKeyword] = useState("");
@@ -85,6 +86,7 @@ export function PhotoExplorer({ cities, ready, connectionState, busy: tripBusy, 
   }, []);
 
   async function load(more = false, withoutKeyword = false) {
+    if (connectionState === "error") onReconnect();
     controller.current?.abort();
     const current = new AbortController(), id = ++requestId.current;
     controller.current = current; setBusy(true); setSlow(false); setError("");
@@ -130,11 +132,11 @@ export function PhotoExplorer({ cities, ready, connectionState, busy: tripBusy, 
         <option value="">강원도 전체</option>{cities.map(item => <option key={item.code} value={item.name}>{item.name}</option>)}
       </select></div>
       <div><label htmlFor="photo-keyword">사진 키워드</label><input id="photo-keyword" className={styles.textInput} value={keyword} maxLength={40} placeholder="예: 박물관, 바다" disabled={busy} onChange={event => setKeyword(event.target.value)} /></div>
-      <button type="submit" className={styles.primary} disabled={busy || !ready}>{busy ? "사진 조회 중…" : "사진 둘러보기"}</button>
+      <button type="submit" className={styles.primary} disabled={busy || !ready}>{busy ? "사진 조회 중…" : connectionState === "error" ? "다시 연결하며 사진 보기" : "사진 둘러보기"}</button>
     </form>
-    {!ready && <p className={styles.small}>{connectionState === "connecting"
+    {(connectionState === "error" || !ready) && <p className={styles.small}>{connectionState === "connecting"
       ? "사진 조회를 바로 시작할 수 있어요. 첫 요청만 조금 오래 걸릴 수 있어요."
-      : connectionState === "error" ? "서버에 다시 연결한 뒤 관광사진을 볼 수 있어요."
+      : connectionState === "error" ? "버튼을 누르면 서버 연결과 관광사진 조회를 함께 다시 시도해요."
       : "관광사진 기능을 준비 중이에요. 지도로 장소를 찾아주세요."}</p>}
     {busy && <div className={styles.photoProgress} role="status" aria-live="polite"><span>{slow ? "관광사진과 촬영지를 계속 확인하고 있어요. 이전 사진은 그대로 유지됩니다." : "관광사진을 찾고 있어요…"}</span>{slow && <button className={styles.secondary} type="button" onClick={cancelLoad}>사진 조회 취소</button>}</div>}
     {error && <p className={styles.error} role="alert">{error}{result ? " 이전에 조회한 사진은 유지했어요." : ""}</p>}

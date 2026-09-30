@@ -23,6 +23,8 @@
 .connectionNotice > div,.connectionError > div { display:flex; flex-direction:column; gap:4px; flex:1; line-height:1.55; }
 .connectionNotice strong,.connectionError strong { color:var(--sr-ink); }
 .connectionError { justify-content:space-between; border-color:#f1c9bd; background:#fff1ec; color:#7d493d; }
+.authNotice { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:6px 12px; margin:-8px 0 10px; color:var(--sr-muted); font-size:12px; }
+.authNotice .textButton { min-height:36px; padding:4px 0; font-size:12px; text-decoration:underline; }
 .slowRequest,.photoProgress { display:flex; align-items:center; justify-content:space-between; gap:14px; margin:10px 0 18px; padding:14px 16px; border:1px solid #ead7ae; border-radius:12px; background:#fff8e8; color:#6f5420; font-size:13px; line-height:1.6; }
 .slowRequest > div { display:flex; flex-direction:column; gap:4px; min-width:0; }
 .slowRequest strong { color:var(--sr-ink); }

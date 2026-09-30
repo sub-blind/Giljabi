@@ -5,6 +5,7 @@ import { useEffect, useReducer, useRef, useState } from "react";
 import { ArrowRight, Bookmark, LibraryBig, LogIn, LogOut, MapPin, RefreshCw, Route, Shuffle, Trash2, UserRound } from "lucide-react";
 import { createCourse, getCourseRoute, getRegions, getStatus, parseIntent, searchPlaces } from "@/lib/api";
 import { loadCourse, saveCourse } from "@/lib/storyroute/storage";
+import { canTryServerFeature, connectionTimeoutsForAttempt, nextConnectionRetryDelay, type ConnectionState } from "@/lib/storyroute/connection";
 import { categoryLabels, defaultIntent, type Connection, type Course, type CourseRoute, type Intent, type Phase, type Place, type TravelPhoto } from "@/lib/storyroute/types";
 import { SearchWorkspace, type SearchMode } from "./SearchWorkspace";
 import { PlaceCard } from "./PlaceCard";
@@ -35,8 +36,23 @@ function normalize(intent: Intent): Intent {
   return { ...intent, keywords };
 }
 
+function ConnectionProgress({ retrying }: { retrying: boolean }) {
+  const [seconds, setSeconds] = useState(0);
+  useEffect(() => {
+    const startedAt = Date.now();
+    const timer = setInterval(() => setSeconds(Math.floor((Date.now() - startedAt) / 1000)), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  return <div className={styles.connectionNotice}>
+    <RefreshCw className={styles.connectionSpinner} size={18} aria-hidden="true" />
+    <div><strong role="status">{retrying ? "여행 서버에 다시 연결하고 있어요" : "여행 서버를 미리 깨우고 있어요"}</strong>
+      <span><span aria-hidden="true">{seconds}초째 </span>확인 중이에요. 조건을 고르고 검색을 시작해도 되며, 쉬고 있던 서버의 첫 요청은 1분 안팎 걸릴 수 있어요.</span></div>
+  </div>;
+}
+
 export default function StoryRoute() {
   const auth = useAuth();
+  const { error: authError, reload: reloadAuth } = auth;
   const [state, update] = useReducer((current: TripState, patch: Partial<TripState>) => ({ ...current, ...patch }), initial);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -44,7 +60,7 @@ export default function StoryRoute() {
   const [detail, setDetail] = useState<{ id: string; tab: DetailTab } | null>(null);
   const [connection, setConnection] = useState<Connection | null>(null);
   const [cities, setCities] = useState<{ code: string; name: string }[]>(() => gangwonMapRegions.map(({ code, name }) => ({ code, name })));
-  const [connectionState, setConnectionState] = useState<"connecting" | "ready" | "error">("connecting");
+  const [connectionState, setConnectionState] = useState<ConnectionState>("connecting");
   const [connectionAttempt, setConnectionAttempt] = useState(0);
   const [visiblePlaceCount, setVisiblePlaceCount] = useState(6);
   const [hasSaved, setHasSaved] = useState(false);
@@ -62,6 +78,7 @@ export default function StoryRoute() {
   const historyReady = useRef(false);
   const historyNavigation = useRef(false);
   const previousPhase = useRef<Phase>("create");
+  const authRetryAfterConnection = useRef(false);
   const currentState = useRef(state);
   currentState.current = state;
   const busy = state.busy !== "idle";
@@ -72,6 +89,8 @@ export default function StoryRoute() {
   const title = state.phase === "create" ? state.intent.city ? `${state.intent.city}에서 어떤 하루를 보낼까요?` : "어디로 떠나볼까요?" : state.phase === "discover" ? `${scope}에서 갈 곳을 골라보세요` : `${scope}, 나의 하루 코스`;
   const visiblePlaces = state.places.slice(0, visiblePlaceCount);
   const hiddenPlaceCount = Math.max(0, state.places.length - visiblePlaceCount);
+  const nextConnectionRetryDelayMs = nextConnectionRetryDelay(connectionAttempt);
+  const tourismSearchReady = canTryServerFeature(connectionState, !!connection?.tourismReady);
   const busyMessage = state.busy === "intent" ? "여행 문장에서 지역과 관심사를 정리하고 있어요…"
     : state.busy === "search" ? `${requestedScope}의 실제 관광 장소를 찾고 있어요…`
     : state.busy === "course" ? "선택한 장소를 다시 확인해 코스를 만들고 있어요…"
@@ -99,16 +118,16 @@ export default function StoryRoute() {
       void getRegions(controller.signal).then(value => {
         if (active) setCities(value.cities);
       }).catch(() => undefined);
-      // 무료 서버의 절전 해제는 첫 요청에서 충분히 기다리고, 실패하면 짧게 한 번만 재확인한다.
-      // 두 요청의 합계가 안내 시간과 크게 어긋나지 않도록 전체 대기를 약 76초로 제한한다.
-      const statusTimeouts = [65000, 10000];
+      // 무료 서버의 절전 해제는 첫 요청에서 충분히 기다리고, 실패하면 짧은 상태 요청으로 재확인한다.
+      // 첫 확인이 모두 실패하면 별도 효과에서 간격을 늘려 자동 재연결한다.
+      const statusTimeouts = connectionTimeoutsForAttempt(connectionAttempt);
       for (let attempt = 0; attempt < statusTimeouts.length && active; attempt += 1) {
         const statusResult = await getStatus(controller.signal, statusTimeouts[attempt]).then(value => ({ ok: true as const, value })).catch(() => ({ ok: false as const }));
         if (!active) return;
         if (statusResult.ok) {
           setConnection(statusResult.value);
           setConnectionState("ready");
-          if (attempt > 0) setMessage("여행 서버에 다시 연결했어요.");
+          if (connectionAttempt > 0 || attempt > 0) setMessage("여행 서버에 다시 연결했어요.");
           return;
         }
         if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 1200));
@@ -118,6 +137,19 @@ export default function StoryRoute() {
     void connect();
     return () => { active = false; controller.abort(); };
   }, [connectionAttempt]);
+
+  useEffect(() => {
+    if (connectionState !== "error" || nextConnectionRetryDelayMs === null) return;
+    const timer = setTimeout(() => setConnectionAttempt(value => value + 1), nextConnectionRetryDelayMs);
+    return () => clearTimeout(timer);
+  }, [connectionState, nextConnectionRetryDelayMs]);
+
+  useEffect(() => {
+    if (connectionState !== "ready" || !authError || authRetryAfterConnection.current) return;
+    authRetryAfterConnection.current = true;
+    const timer = setTimeout(() => { void reloadAuth().catch(() => undefined); }, 800);
+    return () => clearTimeout(timer);
+  }, [connectionState, authError, reloadAuth]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -206,6 +238,10 @@ export default function StoryRoute() {
     setMessage("요청을 취소했어요. 조건과 기존 결과는 그대로 남아 있어요.");
   }
 
+  function retryConnectionNow() {
+    setConnectionAttempt(value => value + 1);
+  }
+
   function pick(id: string) {
     if (busy) return;
     const exists = state.selectedIds.includes(id);
@@ -255,6 +291,7 @@ export default function StoryRoute() {
   }
 
   async function search(more = false, override?: Intent) {
+    if (connectionState === "error") retryConnectionNow();
     let intent: Intent;
     try {
       const source = more && state.appliedIntent ? state.appliedIntent : override ?? state.intent;
@@ -417,9 +454,9 @@ export default function StoryRoute() {
         onClick={() => { if (phase.id === "course") { if (state.course) update({ phase: "course" }); else void build(); } else if (phase.id === "create") openCreate(); else update({ phase: phase.id }); }}><span>{index + 1}</span>{phase.label}</button>)}</nav>
       {connection?.testing && <p className={styles.warning}>기능 검증용 테스트 데이터예요. 실제 관광 장소가 아니에요.</p>}
       {connection && !connection.tourismReady && <p className={styles.warning}>관광 데이터 연결을 준비 중이에요. 지금은 여행 조건을 입력하고 수정할 수 있어요.</p>}
-      {connectionState === "connecting" && <div className={styles.connectionNotice} role="status" aria-live="polite"><RefreshCw className={styles.connectionSpinner} size={18} aria-hidden="true" /><div><strong>여행 서버를 미리 깨우고 있어요</strong><span>조건을 고르고 검색을 바로 시작해도 돼요. 첫 요청만 30~60초 걸릴 수 있어요.</span></div></div>}
-      {connectionState === "error" && <div className={styles.connectionError} role="alert"><div><strong>여행 서버에 연결하지 못했어요</strong><span>네트워크를 확인한 뒤 다시 연결해주세요. 선택한 조건은 그대로 유지돼요.</span></div><button className={styles.secondary} type="button" disabled={busy} onClick={() => setConnectionAttempt(value => value + 1)}><RefreshCw size={15} aria-hidden="true" />다시 연결</button></div>}
-      {auth.error && <p className={styles.warning}>{auth.error}</p>}
+      {connectionState === "connecting" && <ConnectionProgress retrying={connectionAttempt > 0} />}
+      {connectionState === "error" && <div className={styles.connectionError} role="alert"><div><strong>여행 서버의 응답을 아직 받지 못했어요</strong><span>{nextConnectionRetryDelayMs === null ? "검색 버튼으로 실제 요청을 다시 보내거나 직접 재연결할 수 있어요." : `${nextConnectionRetryDelayMs / 1000}초 후 자동으로 다시 확인해요. 검색 버튼을 누르면 바로 실제 요청을 보냅니다.`} 선택한 조건은 그대로 유지돼요.</span></div><button className={styles.secondary} type="button" disabled={busy} onClick={retryConnectionNow}><RefreshCw size={15} aria-hidden="true" />지금 다시 연결</button></div>}
+      {connectionState === "ready" && authError && <div className={styles.authNotice} role="status"><span>로그인 상태만 확인하지 못했어요. 여행 찾기는 그대로 이용할 수 있어요.</span><button className={styles.textButton} type="button" onClick={() => void reloadAuth().catch(() => undefined)}>로그인 다시 확인</button></div>}
       <div className={styles.status} role="status" aria-live="polite">{message || busyMessage}</div>
       {slowRequest && busy && <div className={styles.slowRequest} role="status" aria-live="polite"><div><strong>조금 더 확인하고 있어요</strong><span>{state.busy === "intent" ? "서버를 깨운 뒤 여행 문장을 해석하고 있어요." : state.busy === "search" ? "한국관광공사에서 실제 장소를 확인하고 있어요." : state.busy === "course" || state.busy === "restore" ? "선택한 장소를 다시 확인하고 코스를 정리하고 있어요." : "현재 순서의 자동차 경로를 확인하고 있어요."} 기다리기 어렵다면 취소해도 입력과 기존 결과는 사라지지 않아요.</span></div><button className={styles.secondary} type="button" onClick={cancelCurrentRequest}>요청 취소</button></div>}
       {error && <p className={styles.error} role="alert">{error}</p>}
@@ -431,10 +468,10 @@ export default function StoryRoute() {
         <SearchWorkspace mode={searchMode} onMode={setSearchMode} query={state.query} onQuery={query => update({ query })}
           intent={state.intent} intentMode={state.mode} onIntent={intent => update({ intent })} cities={cities}
           busy={busy} parsing={state.busy === "intent"} connectionState={connectionState}
-          tourismReady={connectionState === "connecting" || (connectionState === "ready" && !!connection?.tourismReady)}
-          aiReady={connectionState === "connecting" ? true : connectionState === "ready" && connection ? connection.aiReady : false}
-          photosReady={connectionState === "connecting" || (connectionState === "ready" && !!connection?.photosReady)}
-          hasSelection={!!state.selectedIds.length} onSearch={() => void search()} onPhoto={explore}
+          tourismReady={tourismSearchReady}
+          aiReady={canTryServerFeature(connectionState, !!connection?.aiReady)}
+          photosReady={canTryServerFeature(connectionState, !!connection?.photosReady)}
+          hasSelection={!!state.selectedIds.length} onSearch={() => void search()} onPhoto={explore} onReconnect={retryConnectionNow}
           onCity={city => {
             update({ intent: { ...state.intent, city, keywords: [], preferences: [], unsupportedConditions: [] }, mode: "manual", intentReady: true });
             setMessage(`선택한 여행 지역: ${city ?? "강원도 전체"}`); setError("");
@@ -442,6 +479,7 @@ export default function StoryRoute() {
           }}
           onParse={() => {
             if (!state.query.trim()) { setError("원하는 여행을 한 문장으로 적어주세요."); return; }
+            if (connectionState === "error") retryConnectionNow();
             void run("intent", async (id, signal) => {
               const result = await parseIntent(state.query.trim(), signal); if (id !== requestId.current) return;
               update({ intent: result.intent, mode: result.mode, intentReady: true }); setNotices(result.notices); setSearchMode("conditions");

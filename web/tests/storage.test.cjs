@@ -85,3 +85,23 @@ test("구간 길찾기는 두 장소를 연결하고 좌표 누락은 검색으�
   assert.match(api.directionsUrl({ ...destination, longitude: null }, origin), /\/link\/search\//);
   assert.equal(api.directionsLabel({ ...destination, longitude: null }), "카카오맵에서 장소 검색");
 });
+
+test("서버 상태 확인은 첫 시도 뒤 5초·15초·30초 간격으로 자동 재시도한다", () => {
+  const { load } = storage();
+  const api = load("connection");
+  assert.deepEqual(Array.from(api.connectionTimeoutsForAttempt(0)), [65_000, 10_000]);
+  assert.deepEqual(Array.from(api.connectionTimeoutsForAttempt(1)), [15_000]);
+  assert.equal(api.nextConnectionRetryDelay(0), 5_000);
+  assert.equal(api.nextConnectionRetryDelay(1), 15_000);
+  assert.equal(api.nextConnectionRetryDelay(2), 30_000);
+  assert.equal(api.nextConnectionRetryDelay(3), null);
+});
+
+test("상태 확인이 실패해도 실제 기능 요청은 시도하고 준비 안 된 기능만 막는다", () => {
+  const { load } = storage();
+  const api = load("connection");
+  assert.equal(api.canTryServerFeature("connecting", false), true);
+  assert.equal(api.canTryServerFeature("error", false), true);
+  assert.equal(api.canTryServerFeature("ready", true), true);
+  assert.equal(api.canTryServerFeature("ready", false), false);
+});
