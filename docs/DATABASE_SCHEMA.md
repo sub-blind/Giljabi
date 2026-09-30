@@ -2,7 +2,7 @@
 
 관계와 저장 경계를 먼저 훑으려면 [데이터 모델과 ERD](./DATA_MODEL.md)를 본다. 이 문서는 컬럼·제약·인덱스와 운영 확인 절차를 자세히 설명한다.
 
-2026년 9월 20일 현행화 · SQLAlchemy 모델·초기 Alembic 마이그레이션 구현 및 로컬 DB 적용 완료.
+2026년 9월 30일 현행화 · SQLAlchemy 모델·초기 Alembic 마이그레이션 구현 및 로컬 DB 적용 완료.
 
 로그인 유지와 사용자별 코스 저장에 필요한 테이블을 생성했다. 카카오 로그인은 `users`와 `auth_sessions`에, 계정별 코스는 `courses`와 `course_places`에 연결했다. 방문 체크·개인 메모는 현재 브라우저에만 저장하며 `place_records`는 향후 계정 동기화를 위한 확장 구조로 아직 API에 연결하지 않았다. 공개 리뷰·사진 업로드는 이번 범위에서 제외했다.
 
@@ -25,7 +25,10 @@ UUID는 서버에서 생성하고 시간은 `timestamptz`로 저장한다. 생�
 | id | uuid | 기본키, 서비스 내부 사용자 ID |
 | provider | varchar(20) | 현재 `kakao` |
 | provider_user_id | varchar(100) | 카카오가 제공한 사용자 식별자 |
-| nickname | varchar(100) | NULL 허용, 표시 이름 |
+| nickname | varchar(100) | NULL 허용, 선택 닉네임 |
+| policy_version | varchar(20) | NULL 허용, 최신 약관·방침 확인 버전 |
+| policy_confirmed_at | timestamptz | NULL 허용, 확인 시각 |
+| age_confirmed_at | timestamptz | NULL 허용, 만 14세 이상 자기 확인 시각 |
 | created_at | timestamptz | 생성 시각 |
 | updated_at | timestamptz | 수정 시각 |
 
@@ -100,7 +103,7 @@ UUID는 서버에서 생성하고 시간은 `timestamptz`로 저장한다. 생�
 
 코스와 장소 생성은 하나의 트랜잭션으로 처리한다. 목록·단건 조회·삭제는 로그인 사용자 소유권을 확인한다. 향후 장소 변경과 방문 기록 동기화를 연결할 때는 부모 코스의 버전을 확인해 동시에 수정한 내용을 조용히 덮어쓰지 않도록 구현한다.
 
-테이블 생성과 변경은 Alembic으로 관리한다. `app/models.py`와 초기 변경 `20260918_01`을 구현하고 로컬 Docker PostgreSQL에 적용했다. 직접 SQL로 수정 시각을 변경할 때는 `updated_at`을 명시해야 하며 SQLAlchemy 모델을 통한 수정에서는 자동 갱신된다. 계정 코스 생성·조회·삭제의 소유권 검사는 구현했으며, 수정 시 버전 충돌 처리와 방문 기록 동기화는 이후 범위다.
+테이블 생성과 변경은 Alembic으로 관리한다. `app/models.py`와 초기 변경 `20260918_01`과 NULL 허용 확인 기록 추가 변경 `20260930_01`을 구현하고 로컬 Docker PostgreSQL에 적용했다. 직접 SQL로 수정 시각을 변경할 때는 `updated_at`을 명시해야 하며 SQLAlchemy 모델을 통한 수정에서는 자동 갱신된다. 계정 코스 생성·조회·삭제의 소유권 검사는 구현했으며, 수정 시 버전 충돌 처리와 방문 기록 동기화는 이후 범위다.
 
 ## 실행과 실제 확인
 
@@ -114,6 +117,8 @@ UUID는 서버에서 생성하고 시간은 `timestamptz`로 저장한다. 생�
 .\.venv\Scripts\python.exe -X utf8 tools/check_db_schema.py
 ```
 
-pgAdmin에서 `storyroute → Schemas → public → Tables`를 새로 고침하면 위 다섯 테이블과 변경 이력용 `alembic_version`이 보인다. `alembic current` 결과는 `20260918_01 (head)`다. 같은 upgrade 명령을 다시 실행해도 적용된 변경을 반복하지 않는다.
+pgAdmin에서 `storyroute → Schemas → public → Tables`를 새로 고침하면 위 다섯 테이블과 변경 이력용 `alembic_version`이 보인다. `alembic current` 결과는 `20260930_01 (head)`다. 같은 upgrade 명령을 다시 실행해도 적용된 변경을 반복하지 않는다.
 
 실제 DB에서 중복·외래키·제목·JSON 타입·버전·최대 세 장소·메모 길이·순서 교환·체크 해제·연쇄 삭제 등 16개 사례를 확인했다. 검증은 프로젝트 전용 로컬 주소에서만 실행하며 확인용 데이터는 모두 롤백한다. 테이블과 마이그레이션 이력만 남기고 실제 사용자의 계정·코스·메모는 만들지 않았다. 초기 변경을 되돌리는 downgrade는 해당 테이블과 데이터를 삭제하므로 일반 실행 명령으로 사용하지 않는다.
+
+기존 회원의 과거 동의·연령을 추정하지 않는다. 새 확인 컬럼은 NULL로 시작하며, 새 로그인 콜백에서 서명된 확인 버전과 시각을 기록한다. 계정 삭제 시 이 기록도 함께 삭제한다.

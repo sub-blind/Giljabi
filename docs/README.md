@@ -21,6 +21,7 @@
 |---|---|
 | [프로젝트 README](../README.md) | 설치, 로컬 실행, 주요 기능과 빠른 명령 |
 | [검증 기록](./VALIDATION.md) | 자동 테스트와 날짜순 실제 연동 확인 이력 |
+| [개인정보 운영 점검](./PRIVACY_OPERATIONS.md) | 선택 AI 전송·국외 처리·비공개 연락처·남은 운영 설정 |
 | [AI 설정과 확인](./AI_SETUP_AND_CHECK.md) | Responses API 설정, 평가 범위, 실패 시 대체 흐름 |
 | [PostgreSQL 실행 안내](./POSTGRESQL_PLAN.md) | 로컬 DB 실행, 마이그레이션, 운영 시 주의점 |
 | [강원도 API 선정안](./API_SELECTION_GANGWON.md) | TourAPI 서비스별 역할과 데이터 채택 기준 |

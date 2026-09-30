@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ArrowRight, Images, MessageSquareText, SlidersHorizontal } from "lucide-react";
 import type { Intent, TravelPhoto } from "@/lib/storyroute/types";
 import type { ConnectionState } from "@/lib/storyroute/connection";
@@ -14,11 +15,12 @@ const searchModes = [
 ] as const;
 
 export function SearchWorkspace({ mode, onMode, query, onQuery, intent, intentMode, onIntent, cities,
-  busy, parsing, connectionState, tourismReady, aiReady, photosReady, hasSelection, onParse, onSearch, onCity, onPhoto, onReconnect }: {
+  busy, parsing, connectionState, tourismReady, aiReady, aiConsent, onAiConsent, photosReady, hasSelection, onParse, onSearch, onCity, onPhoto, onReconnect }: {
   mode: SearchMode; onMode: (mode: SearchMode) => void; query: string; onQuery: (query: string) => void;
   intent: Intent; intentMode: "ai" | "manual"; onIntent: (intent: Intent) => void;
   cities: { code: string; name: string }[]; busy: boolean; parsing: boolean;
   connectionState: ConnectionState; tourismReady: boolean; aiReady: boolean | null;
+  aiConsent: boolean; onAiConsent: (value: boolean) => void;
   photosReady: boolean; hasSelection: boolean; onParse: () => void; onSearch: () => void;
   onCity: (city: string | null) => void; onPhoto: (photo: TravelPhoto) => void; onReconnect: () => void;
 }) {
@@ -46,16 +48,20 @@ export function SearchWorkspace({ mode, onMode, query, onQuery, intent, intentMo
         <div className={styles.workspaceHeading}><h2>하고 싶은 여행을 적어주세요</h2><p>지역과 관심사를 정리한 뒤, 검색할 조건을 함께 확인해요.</p></div>
         <form onSubmit={event => { event.preventDefault(); onParse(); }}>
           <label className={styles.fieldLabel} htmlFor="trip-query">원하는 하루 여행</label>
-          <textarea id="trip-query" maxLength={500} value={query} disabled={busy} onChange={event => onQuery(event.target.value)} placeholder="춘천에서 박물관을 둘러보고 맛있는 점심을 먹고 싶어" aria-describedby="query-count" />
+          <textarea id="trip-query" maxLength={500} value={query} disabled={busy} onChange={event => onQuery(event.target.value)} placeholder="춘천에서 박물관을 둘러보고 맛있는 점심을 먹고 싶어" aria-describedby="query-privacy query-count" />
+          <div id="query-privacy" className={styles.privacyHint}>
+            <label><input type="checkbox" disabled={busy} checked={aiConsent} onChange={event => onAiConsent(event.target.checked)} /><strong>AI 문장 해석과 코스 설명 사용 (선택 · 만 14세 이상)</strong></label>
+            <p>선택하면 여행 문장·검색 키워드·선호 조건과 공식 장소 소개가 OpenAI(미국)에 요청할 때 전송됩니다. 목적은 조건 해석·소개 근거 선택이며, 서비스 DB에는 원문을 저장하지 않습니다. OpenAI의 보안 로그에는 최대 30일 보관될 수 있어요. <Link href="/privacy#ai" target="_blank">이전 항목·시점·보유기간·철회 안내</Link></p>
+            <p>이름·연락처·계정정보·건강정보는 적지 마세요. 선택하지 않으면 AI 전송 없이 기본 조건을 정리하며, <button type="button" disabled={busy} onClick={() => onMode("conditions")}>지도로 찾기</button>도 사용할 수 있어요. 체크를 해제하면 이후 요청부터 전송하지 않습니다.</p>
+          </div>
           <div className={styles.inputFooter}><span>강원도 · 당일 · 최대 3곳</span><span id="query-count">{query.length} / 500</span></div>
           <div className={styles.examples} aria-label="여행 문장 예시">{["강원도 바다 보고 카페 가기", "춘천에서 박물관 구경하고 식사하기"].map(example =>
             <button key={example} type="button" disabled={busy} onClick={() => { onQuery(example); document.getElementById("trip-query")?.focus(); }}>{example}<ArrowRight size={13} aria-hidden="true" /></button>)}</div>
           <div className={styles.searchSubmit}>
             <p>{connectionState === "connecting" ? "바로 시작할 수 있어요. 첫 문장 해석은 잠든 서버를 깨우느라 조금 오래 걸릴 수 있어요."
               : connectionState === "error" ? "버튼을 누르면 서버 연결과 문장 해석을 함께 다시 시도해요."
-              : aiReady === false ? "문장 해석을 준비 중이에요. 지금은 조건을 직접 골라주세요." : "해석한 조건은 검색 전에 수정할 수 있어요."}</p>
-            {aiReady === false ? <button className={styles.primary} type="button" disabled={busy} onClick={() => { onMode("conditions"); requestAnimationFrame(() => document.getElementById("intent-title")?.focus()); }}>직접 조건 고르기<ArrowRight size={17} aria-hidden="true" /></button> :
-              <button className={styles.primary} type="submit" disabled={busy || aiReady === null}>{parsing ? "조건 확인 중…" : connectionState === "error" ? "다시 연결하며 조건 확인" : "여행 조건 확인"}<ArrowRight size={17} aria-hidden="true" /></button>}
+              : !aiConsent || aiReady === false ? "AI 전송 없이 기본 조건을 정리해요. 검색 전에 확인해주세요." : "해석한 조건은 검색 전에 수정할 수 있어요."}</p>
+            <button className={styles.primary} type="submit" disabled={busy}>{parsing ? "조건 확인 중…" : connectionState === "error" ? "다시 연결하며 조건 확인" : "여행 조건 확인"}<ArrowRight size={17} aria-hidden="true" /></button>
           </div>
         </form>
       </div>

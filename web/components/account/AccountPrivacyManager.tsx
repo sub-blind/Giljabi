@@ -64,7 +64,7 @@ export function AccountPrivacyManager() {
     </section>
     {auth.authenticated && <section className={styles.section}>
       <h2>회원 탈퇴와 서버 정보 삭제</h2>
-      <p>회원 정보, 모든 로그인 세션과 계정에 저장한 코스를 즉시 삭제합니다. 삭제 후에는 복구할 수 없습니다.</p>
+      <p>운영 데이터베이스에서 회원 정보, 모든 로그인 세션과 계정에 저장한 코스를 삭제합니다. 서비스 화면에서 복구할 수 없습니다. 호스팅 운영 로그·DB 복구본은 제공처의 별도 보관기간이 적용됩니다. <Link href="/privacy#retention">보관·삭제 안내</Link>를 확인해주세요.</p>
       <label className={styles.check}><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} /><span>계정에 저장한 모든 코스가 함께 삭제되며 복구할 수 없음을 확인했습니다.</span></label>
       <div className={styles.actions}><button className={styles.danger} type="button" disabled={!confirmed || busy} onClick={() => void removeAccount()}>{busy ? "삭제 중…" : "계정과 개인정보 삭제"}</button></div>
     </section>}

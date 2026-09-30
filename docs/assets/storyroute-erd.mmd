@@ -9,6 +9,9 @@ erDiagram
         varchar provider
         varchar provider_user_id UK
         varchar nickname "NULL 허용"
+        varchar policy_version "NULL 허용"
+        timestamptz policy_confirmed_at "NULL 허용"
+        timestamptz age_confirmed_at "NULL 허용"
         timestamptz created_at
         timestamptz updated_at
     }

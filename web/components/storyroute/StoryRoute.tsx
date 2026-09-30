@@ -66,6 +66,7 @@ export default function StoryRoute() {
   const [hasSaved, setHasSaved] = useState(false);
   const [route, setRoute] = useState<CourseRoute | null>(null);
   const [searchMode, setSearchMode] = useState<SearchMode>("conditions");
+  const [aiConsent, setAiConsent] = useState(false);
   const [accountCourses, setAccountCourses] = useState<SavedAccountCourse[]>([]);
   const [savedCoursesOpen, setSavedCoursesOpen] = useState(false);
   const [accountBusy, setAccountBusy] = useState(false);
@@ -262,7 +263,7 @@ export default function StoryRoute() {
     if (!state.course || !state.appliedIntent || busy) return;
     const nextIds = state.course.orderedPlaces.map(place => place.id === currentId ? nextId : place.id);
     await run("course", async (id, signal) => {
-      const course = await createCourse(nextIds, state.appliedIntent!, signal);
+      const course = await createCourse(nextIds, state.appliedIntent!, signal, aiConsent);
       if (id !== requestId.current) return;
       const places = [...new Map([...state.places, ...course.orderedPlaces].map(place => [place.id, place])).values()];
       let stored = true;
@@ -321,7 +322,7 @@ export default function StoryRoute() {
   async function build() {
     if (!state.selectedIds.length || !state.appliedIntent) return;
     await run("course", async (id, signal) => {
-      const course = await createCourse(state.selectedIds, state.appliedIntent!, signal);
+      const course = await createCourse(state.selectedIds, state.appliedIntent!, signal, aiConsent);
       if (id !== requestId.current) return;
       setRoute(null);
       update({ course, phase: "course" }); setNotices(course.notices);
@@ -461,6 +462,7 @@ export default function StoryRoute() {
       {slowRequest && busy && <div className={styles.slowRequest} role="status" aria-live="polite"><div><strong>조금 더 확인하고 있어요</strong><span>{state.busy === "intent" ? "서버를 깨운 뒤 여행 문장을 해석하고 있어요." : state.busy === "search" ? "한국관광공사에서 실제 장소를 확인하고 있어요." : state.busy === "course" || state.busy === "restore" ? "선택한 장소를 다시 확인하고 코스를 정리하고 있어요." : "현재 순서의 자동차 경로를 확인하고 있어요."} 기다리기 어렵다면 취소해도 입력과 기존 결과는 사라지지 않아요.</span></div><button className={styles.secondary} type="button" onClick={cancelCurrentRequest}>요청 취소</button></div>}
       {error && <p className={styles.error} role="alert">{error}</p>}
       {notices.map((item, index) => <p key={index} className={styles.notice}>{item}</p>)}
+      {aiConsent && state.phase !== "create" && <p className={styles.privacyHint}>이번 화면에서 AI 설명을 선택했어요. <button type="button" disabled={busy} onClick={() => setAiConsent(false)}>이후 AI 전송 중지</button></p>}
 
       {state.phase === "create" ? <>
         <section className={styles.hero}><p className={styles.eyebrow}>강원도에서 보내는 하루</p><h1>{title}</h1>
@@ -470,6 +472,7 @@ export default function StoryRoute() {
           busy={busy} parsing={state.busy === "intent"} connectionState={connectionState}
           tourismReady={tourismSearchReady}
           aiReady={canTryServerFeature(connectionState, !!connection?.aiReady)}
+          aiConsent={aiConsent} onAiConsent={setAiConsent}
           photosReady={canTryServerFeature(connectionState, !!connection?.photosReady)}
           hasSelection={!!state.selectedIds.length} onSearch={() => void search()} onPhoto={explore} onReconnect={retryConnectionNow}
           onCity={city => {
@@ -481,7 +484,7 @@ export default function StoryRoute() {
             if (!state.query.trim()) { setError("원하는 여행을 한 문장으로 적어주세요."); return; }
             if (connectionState === "error") retryConnectionNow();
             void run("intent", async (id, signal) => {
-              const result = await parseIntent(state.query.trim(), signal); if (id !== requestId.current) return;
+              const result = await parseIntent(state.query.trim(), signal, aiConsent); if (id !== requestId.current) return;
               update({ intent: result.intent, mode: result.mode, intentReady: true }); setNotices(result.notices); setSearchMode("conditions");
               requestAnimationFrame(() => document.getElementById("intent-title")?.focus());
             });

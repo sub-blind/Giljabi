@@ -58,6 +58,8 @@ def test_connection_error_is_sanitized_and_health_has_no_credentials(monkeypatch
     class FailedEngine:
         def connect(self):
             raise OperationalError("SELECT 1", {}, RuntimeError("secret-db-password internal-host"))
+        def begin(self):
+            raise OperationalError("DELETE", {}, RuntimeError("secret-db-password internal-host"))
         def dispose(self):
             pass
     database = Database(settings(database_url="postgresql://user:secret-db-password@internal-host/db"))

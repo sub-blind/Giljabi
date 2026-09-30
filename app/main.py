@@ -1,4 +1,6 @@
 from contextlib import asynccontextmanager
+import asyncio
+from contextlib import suppress
 
 import time
 from collections import defaultdict, deque
@@ -12,17 +14,25 @@ from app.api.v1.router import api_v1_router
 from app.config import get_settings
 from app.database import Database, DatabaseError, DatabaseNotConfigured
 from app.tour_api.client import TourApiError
+from app.services.session_cleanup import maintain_sessions
+from app.privacy_logging import configure_privacy_logging
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    cleanup = asyncio.create_task(maintain_sessions(app.state.database)) if isinstance(app.state.database, Database) else None
     try:
         yield
     finally:
+        if cleanup is not None:
+            cleanup.cancel()
+            with suppress(asyncio.CancelledError):
+                await cleanup
         app.state.database.dispose()
 
 
 def create_app() -> FastAPI:
+    configure_privacy_logging()
     settings = get_settings()
     app = FastAPI(
         title="StoryRoute 관광 API",
@@ -64,6 +74,7 @@ def create_app() -> FastAPI:
         response = await call_next(request)
         if request.url.path.startswith("/api/v1/auth/"):
             response.headers["Cache-Control"] = "no-store"
+            response.headers["Referrer-Policy"] = "no-referrer"
         return response
 
     @app.exception_handler(DatabaseError)

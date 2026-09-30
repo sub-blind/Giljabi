@@ -140,7 +140,7 @@ def test_batched_ai_evidence_is_called_once_and_checked_against_source(bad):
     ai_client = httpx.AsyncClient(transport=httpx.MockTransport(ai_handler))
     service = DayTripService(offline_settings(openai_api_key="test-only-key", openai_model="test-model"), provider, ai_client)
     with client(service) as api:
-        result = api.post("/api/v1/day-trip/course", json={"placeIds": ["12_1001", "39_1002"], "intent": INTENT}).json()
+        result = api.post("/api/v1/day-trip/course", json={"placeIds": ["12_1001", "39_1002"], "intent": INTENT, "aiConsent": True, "privacyVersion": "2026-09-30"}).json()
         assert len(calls) == 1
         assert all(item["mode"] == ("facts" if bad else "ai") for item in result["explanations"])
         assert "오전 9시" not in json.dumps(result, ensure_ascii=False)
@@ -198,7 +198,7 @@ def test_unusable_ai_intent_keeps_manual_conditions(response):
     ai = httpx.AsyncClient(transport=httpx.MockTransport(lambda request: response))
     service = DayTripService(offline_settings(openai_api_key="test-only-key", openai_model="test-model"), provider, ai)
     with client(service) as api:
-        result = api.post("/api/v1/day-trip/intent", json={"query": "춘천 박물관과 식사"}).json()
+        result = api.post("/api/v1/day-trip/intent", json={"query": "춘천 박물관과 식사", "aiConsent": True, "privacyVersion": "2026-09-30"}).json()
         assert result["mode"] == "manual"
         assert result["intent"]["city"] == "춘천시"
         assert set(result["intent"]["categories"]) == {"culture", "food"}
@@ -211,3 +211,20 @@ def test_local_ai_environment_is_excluded_from_unit_settings(monkeypatch):
     monkeypatch.setenv("OPENAI_MODEL", "test-environment-model")
     settings = offline_settings()
     assert not settings.openai_api_key and not settings.openai_model
+
+
+@pytest.mark.parametrize("consent", [{}, {"aiConsent": False, "privacyVersion": "2026-09-30"}, {"aiConsent": True}, {"aiConsent": True, "privacyVersion": "old"}])
+def test_no_ai_transmission_without_current_optional_consent(consent):
+    calls = []
+    def unexpected(request):
+        calls.append(request)
+        raise AssertionError("선택하지 않은 여행 조건을 외부 AI로 전송하면 안 됩니다.")
+    ai = httpx.AsyncClient(transport=httpx.MockTransport(unexpected))
+    service = DayTripService(offline_settings(openai_api_key="test-only-key", openai_model="test-model"), provider, ai)
+    with client(service) as api:
+        response = api.post("/api/v1/day-trip/intent", json={"query": "강릉 조용한 해변", **consent})
+        assert response.status_code == 200 and response.json()["mode"] == "manual"
+        course = api.post("/api/v1/day-trip/course", json={"placeIds": ["12_1001"], "intent": INTENT, **consent})
+        assert course.status_code == 200 and course.json()["explanations"][0]["mode"] == "facts"
+    assert calls == []
+    asyncio.run(ai.aclose())

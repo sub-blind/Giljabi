@@ -64,7 +64,7 @@ async def main():
         recorder = RecordingAI(client)
         service = DayTripService(settings, ai_client=recorder)
         for query, city, categories, unsupported in CASES:
-            result = await service.intent(query)
+            result = await service.intent(query, ai_consent=True, privacy_version="2026-09-30")
             intent = result["intent"]
             checks = {"AI 응답": result["mode"] == "ai", "지역": intent["city"] == city,
                       "유형": set(intent["categories"]) == categories,

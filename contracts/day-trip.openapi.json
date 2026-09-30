@@ -984,6 +984,23 @@
           },
           "intent": {
             "$ref": "#/components/schemas/Intent"
+          },
+          "aiConsent": {
+            "type": "boolean",
+            "title": "Aiconsent",
+            "default": false
+          },
+          "privacyVersion": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Privacyversion"
           }
         },
         "additionalProperties": false,
@@ -1185,6 +1202,23 @@
             "maxLength": 500,
             "minLength": 1,
             "title": "Query"
+          },
+          "aiConsent": {
+            "type": "boolean",
+            "title": "Aiconsent",
+            "default": false
+          },
+          "privacyVersion": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Privacyversion"
           }
         },
         "additionalProperties": false,

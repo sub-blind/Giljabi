@@ -1,11 +1,14 @@
 """인증 실패 응답과 선택 실행하는 로컬 PostgreSQL 로그인 검증. 테스트 데이터는 롤백한다."""
 
 import os
+import asyncio
+import json
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
 import pytest
+import httpx
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from sqlalchemy import func, insert, select, update
@@ -37,7 +40,7 @@ def test_malformed_token_is_401(token, config):
 
 
 def test_state_failure_never_calls_kakao_or_database(monkeypatch, config):
-    async def forbidden(code):
+    async def forbidden(code, **kwargs):
         pytest.fail("상태 검증 실패 시 외부 인증을 호출하면 안 됩니다.")
     monkeypatch.setattr(auth, "_exchange_kakao_code_for_user", forbidden)
     with TestClient(create_app()) as api:
@@ -211,24 +214,27 @@ def test_login_transaction_failure_leaves_no_user(local_db, external_user, confi
 
 def test_callback_persists_database_before_setting_cookies(local_db, external_user, config, monkeypatch):
     database, connection = local_db
-    async def exchange(code):
+    async def exchange(code, **kwargs):
         return external_user
     monkeypatch.setattr(auth, "_exchange_kakao_code_for_user", exchange)
     app = create_app()
     app.state.database = database
     with TestClient(app) as api:
-        api.cookies.set(auth.STATE_COOKIE_NAME, "test-state")
-        response = api.get("/api/v1/auth/kakao/callback?code=mock-code&state=test-state", follow_redirects=False)
+        from urllib.parse import urlparse, parse_qs
+        login = api.get("/api/v1/auth/kakao/login", params={"policy_version": auth.CURRENT_POLICY_VERSION, "age_confirmed": True, "terms_agreed": True}, follow_redirects=False)
+        state = parse_qs(urlparse(login.headers["location"]).query)["state"][0]
+        response = api.get("/api/v1/auth/kakao/callback", params={"code": "mock-code", "state": state}, follow_redirects=False)
         assert response.headers["location"].endswith("status=success")
         assert api.get("/api/v1/auth/me").json()["user"]["nickname"] == external_user["nickname"]
-        assert connection.execute(select(func.count()).select_from(User).where(User.provider_user_id == external_user["kakaoId"])).scalar_one() == 1
+        assert connection.execute(select(User.policy_version).where(User.provider_user_id == external_user["kakaoId"])).scalar_one() == auth.CURRENT_POLICY_VERSION
+        assert connection.execute(select(User.age_confirmed_at).where(User.provider_user_id == external_user["kakaoId"])).scalar_one() is not None
 
 
 @pytest.mark.parametrize("request_nickname", [False, True])
 def test_login_can_request_only_nickname_consent(request_nickname, config):
     from urllib.parse import urlparse, parse_qs
     with TestClient(create_app()) as api:
-        response = api.get("/api/v1/auth/kakao/login", params={"request_nickname": str(request_nickname).lower()}, follow_redirects=False)
+        response = api.get("/api/v1/auth/kakao/login", params={"request_nickname": str(request_nickname).lower(), "policy_version": auth.CURRENT_POLICY_VERSION, "age_confirmed": True, "terms_agreed": True}, follow_redirects=False)
         assert response.status_code == 307
         target = urlparse(response.headers["location"])
         assert target.netloc == "kauth.kakao.com"
@@ -236,3 +242,56 @@ def test_login_can_request_only_nickname_consent(request_nickname, config):
         assert bool(query.get("state"))
         assert query.get("scope") == (["profile_nickname"] if request_nickname else None)
         assert auth.STATE_COOKIE_NAME in response.headers["set-cookie"]
+
+
+@pytest.mark.parametrize("params", [
+    {},
+    {"policy_version": "old", "age_confirmed": True, "terms_agreed": True},
+    {"policy_version": auth.CURRENT_POLICY_VERSION, "age_confirmed": False, "terms_agreed": True},
+    {"policy_version": auth.CURRENT_POLICY_VERSION, "age_confirmed": True, "terms_agreed": False},
+])
+def test_login_rejects_missing_or_outdated_confirmations(params, config):
+    with TestClient(create_app()) as api:
+        response = api.get("/api/v1/auth/kakao/login", params=params, follow_redirects=False)
+        assert response.status_code in {400, 422}
+        assert "location" not in response.headers
+
+
+def test_matching_unsigned_state_cannot_bypass_confirmations(monkeypatch, config):
+    async def forbidden(*args, **kwargs):
+        pytest.fail("서명하지 않은 확인 기록으로 카카오를 호출하면 안 됩니다.")
+    monkeypatch.setattr(auth, "_exchange_kakao_code_for_user", forbidden)
+    with TestClient(create_app()) as api:
+        api.cookies.set(auth.STATE_COOKIE_NAME, "matching-but-unsigned")
+        response = api.get("/api/v1/auth/kakao/callback?code=test&state=matching-but-unsigned", follow_redirects=False)
+        assert response.headers["location"].endswith("status=error")
+
+
+def test_cleanup_removes_only_inactive_sessions(local_db, external_user, config):
+    from app.services.session_cleanup import purge_inactive_sessions
+    database, connection = local_db
+    access, refresh = auth._persist_login(database, external_user)
+    expired_access, expired_refresh = auth._persist_login(database, external_user)
+    expired_sid = decode_jwt(expired_refresh, config.auth_jwt_secret)["sid"]
+    connection.execute(update(AuthSession).where(AuthSession.id == expired_sid).values(expires_at=datetime.now(timezone.utc) - timedelta(seconds=1)))
+    assert purge_inactive_sessions(database) >= 1
+    assert connection.execute(select(AuthSession.id).where(AuthSession.id == expired_sid)).scalar_one_or_none() is None
+    assert auth._current_user_from_access_token(database, access)["nickname"] == external_user["nickname"]
+
+
+@pytest.mark.parametrize("request_nickname", [False, True])
+def test_kakao_exchange_keeps_only_selected_profile_data(request_nickname, monkeypatch, config):
+    requested_keys = []
+    def handler(request):
+        if request.url.path == "/oauth/token":
+            return httpx.Response(200, json={"access_token": "mock-provider-token"})
+        requested_keys.extend(json.loads(request.url.params["property_keys"]))
+        return httpx.Response(200, json={"id": 12345, "kakao_account": {
+            "email": "unused@example.invalid", "profile": {"nickname": "여행자", "profile_image_url": "https://example.invalid/photo"}}})
+    transport = httpx.MockTransport(handler)
+    client_type = httpx.AsyncClient
+    monkeypatch.setattr(auth.httpx, "AsyncClient", lambda **kwargs: client_type(transport=transport, **kwargs))
+    result = asyncio.run(auth._exchange_kakao_code_for_user("mock-code", request_nickname=request_nickname))
+    assert result["nickname"] == ("여행자" if request_nickname else None)
+    assert set(result) == {"userId", "provider", "nickname", "kakaoId"}
+    assert requested_keys == (["kakao_account.profile"] if request_nickname else ["has_signed_up"])

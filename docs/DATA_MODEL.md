@@ -1,6 +1,6 @@
 # 스토리루트 데이터 모델
 
-이 문서는 현재 `app/models.py`와 Alembic 초기 마이그레이션에 구현된 영속 데이터 구조를 빠르게 파악하기 위한 요약이다. 테이블과 제약의 상세 설명은 [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md)를 기준으로 한다.
+이 문서는 현재 `app/models.py`와 Alembic 마이그레이션(20260930_01까지)에 구현된 영속 데이터 구조를 빠르게 파악하기 위한 요약이다. 테이블과 제약의 상세 설명은 [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md)를 기준으로 한다.
 
 ## ERD
 
@@ -12,7 +12,7 @@
 
 | 테이블 | 책임 | 핵심 관계 |
 |---|---|---|
-| `users` | 카카오 계정을 서비스 내부 사용자로 식별 | 한 사용자가 여러 로그인 세션과 코스를 가질 수 있다. |
+| `users` | 카카오 계정을 식별하고 최신 약관·방침·연령 확인 기록 보관 | 한 사용자가 여러 로그인 세션과 코스를 가질 수 있다. |
 | `auth_sessions` | 리프레시 토큰 원문 대신 SHA-256 해시와 만료·폐기 시각 저장 | `user_id`가 `users.id`를 참조한다. |
 | `courses` | 코스 제목과 검증된 여행 조건 `intent` 저장 | `user_id`가 소유자를 가리킨다. |
 | `course_places` | TourAPI 장소 ID, 콘텐츠 유형, 코스 안의 방문 순서 저장 | 한 코스에 API 기준 1~3개가 속한다. |
@@ -45,3 +45,5 @@ PostgreSQL에는 계정·인증 세션·계정에 저장한 코스만 영속화�
 - [계정 코스 API](../app/api/v1/endpoints/account_courses.py)
 - [브라우저 코스 저장](../web/lib/storyroute/storage.ts)
 - [브라우저 여행 기록](../web/lib/storyroute/journey.ts)
+
+확인 기록은 `policy_version`, `policy_confirmed_at`, `age_confirmed_at`에 남긴다. 기존 계정의 과거 확인은 NULL로 유지하고 새 로그인 확인만 기록한다. 실제 나이 인증은 아니다.

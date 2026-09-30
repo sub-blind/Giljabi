@@ -15,6 +15,7 @@ from sqlalchemy.dialects.postgresql import insert
 
 from app.database import Database, DatabaseError, get_database
 from app.models import User, AuthSession
+from app.privacy import POLICY_VERSION
 
 from app.auth_tokens import (
     create_jwt,
@@ -36,6 +37,7 @@ KAKAO_USERINFO_URL = "https://kapi.kakao.com/v2/user/me"
 ACCESS_COOKIE_NAME = "storyroute_access_token"
 REFRESH_COOKIE_NAME = "storyroute_refresh_token"
 STATE_COOKIE_NAME = "storyroute_oauth_state"
+CURRENT_POLICY_VERSION = POLICY_VERSION
 
 
 def _require_auth_secret() -> str:
@@ -89,17 +91,22 @@ def _user_data(row) -> dict[str, Any]:
     return {"userId": str(row["id"]), "provider": row["provider"], "nickname": row["nickname"]}
 
 
-def _persist_login(database: Database, external_user: dict[str, Any]) -> tuple[str, str]:
+def _persist_login(database: Database, external_user: dict[str, Any], confirmation: dict[str, Any] | None = None) -> tuple[str, str]:
     # 사용자 중복 방지와 세션 생성을 함께 커밋한다. 카카오 원본 토큰은 보관하지 않는다.
     with database.begin() as connection:
         nickname = external_user.get("nickname")
         if nickname is not None:
             nickname = str(nickname)[:100]
+        confirmed = {}
+        if confirmation is not None:
+            accepted_at = datetime.fromtimestamp(confirmation["iat"], timezone.utc)
+            confirmed = {"policy_version": confirmation["policy_version"],
+                         "policy_confirmed_at": accepted_at, "age_confirmed_at": accepted_at}
         statement = insert(User).values(id=uuid4(), provider="kakao",
-                                        provider_user_id=str(external_user["kakaoId"]), nickname=nickname)
+                                        provider_user_id=str(external_user["kakaoId"]), nickname=nickname, **confirmed)
         statement = statement.on_conflict_do_update(
             constraint="uq_users_provider_identity",
-            set_={"nickname": statement.excluded.nickname, "updated_at": func.now()},
+            set_={"nickname": statement.excluded.nickname, "updated_at": func.now(), **confirmed},
         ).returning(User.id, User.provider, User.nickname)
         user = _user_data(connection.execute(statement).mappings().one())
         access, refresh, session = _make_tokens(user)
@@ -206,7 +213,7 @@ def _delete_account(database: Database, refresh_token: str | None) -> None:
             raise HTTPException(status_code=401, detail="이미 삭제되었거나 로그인 정보가 만료됐습니다.")
 
 
-async def _exchange_kakao_code_for_user(code: str) -> dict[str, Any]:
+async def _exchange_kakao_code_for_user(code: str, *, request_nickname: bool = False) -> dict[str, Any]:
     settings = get_settings()
     token_payload = {
         "grant_type": "authorization_code",
@@ -233,6 +240,7 @@ async def _exchange_kakao_code_for_user(code: str) -> dict[str, Any]:
 
         user_response = await client.get(
             KAKAO_USERINFO_URL,
+            params={"property_keys": '["kakao_account.profile"]' if request_nickname else '["has_signed_up"]'},
             headers={"Authorization": f"Bearer {access_token}"},
         )
         if user_response.status_code >= 400:
@@ -248,9 +256,7 @@ async def _exchange_kakao_code_for_user(code: str) -> dict[str, Any]:
     return {
         "userId": f"kakao:{kakao_id}",
         "provider": "kakao",
-        "nickname": profile.get("nickname"),
-        "email": kakao_account.get("email"),
-        "profileImageUrl": profile.get("profile_image_url"),
+        "nickname": profile.get("nickname") if request_nickname else None,
         "kakaoId": kakao_id,
     }
 
@@ -260,17 +266,26 @@ async def kakao_login_url() -> dict[str, Any]:
     settings = get_settings()
     if not settings.kakao_rest_api_key or len(settings.auth_jwt_secret) < 32:
         return {"enabled": False, "loginUrl": None}
-    return {"enabled": True, "loginUrl": "/api/v1/auth/kakao/login"}
+    return {"enabled": True, "loginUrl": None, "confirmationRequired": True, "policyVersion": CURRENT_POLICY_VERSION}
 
 
 @router.get("/kakao/login")
-async def kakao_login(request_nickname: bool = Query(default=False)) -> RedirectResponse:
+async def kakao_login(
+    request_nickname: bool = Query(default=False),
+    policy_version: str = Query(..., min_length=1, max_length=20),
+    age_confirmed: bool = Query(...),
+    terms_agreed: bool = Query(...),
+) -> RedirectResponse:
     settings = get_settings()
     _require_auth_secret()
     if not settings.kakao_rest_api_key:
         raise HTTPException(status_code=503, detail="카카오 로그인 설정이 없습니다.")
+    if policy_version != CURRENT_POLICY_VERSION or not age_confirmed or not terms_agreed:
+        raise HTTPException(status_code=400, detail="최신 이용약관·개인정보처리방침 확인과 만 14세 이상 확인이 필요합니다.")
 
-    state = new_state_token()
+    state = create_jwt({"type": "oauth", "nonce": new_state_token(), "iat": utc_now(), "exp": future_ts(600),
+                        "policy_version": policy_version, "age_confirmed": True, "terms_agreed": True,
+                        "request_nickname": request_nickname}, _require_auth_secret())
     response = RedirectResponse(url=_build_kakao_login_url(state, request_nickname=request_nickname))
     response.set_cookie(
         STATE_COOKIE_NAME,
@@ -293,8 +308,13 @@ async def kakao_callback(
         if not state or not oauth_state or state != oauth_state:
             raise HTTPException(status_code=400, detail="로그인 요청을 확인하지 못했습니다. 다시 시도해주세요.")
 
-        user = await _exchange_kakao_code_for_user(code)
-        access_token, refresh_token = await run_in_threadpool(_persist_login, database, user)
+        confirmation = decode_jwt(state, _require_auth_secret(), expected_type="oauth")
+        if (confirmation.get("policy_version") != CURRENT_POLICY_VERSION
+                or confirmation.get("age_confirmed") is not True or confirmation.get("terms_agreed") is not True
+                or type(confirmation.get("iat")) is not int):
+            raise HTTPException(status_code=400, detail="로그인 안내를 다시 확인해주세요.")
+        user = await _exchange_kakao_code_for_user(code, request_nickname=confirmation.get("request_nickname") is True)
+        access_token, refresh_token = await run_in_threadpool(_persist_login, database, user, confirmation)
 
         response = RedirectResponse(url=settings.auth_frontend_success_url)
         _set_auth_cookies(response, access_token=access_token, refresh_token=refresh_token)

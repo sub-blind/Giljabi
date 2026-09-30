@@ -35,6 +35,9 @@ class User(Timestamps, Base):
     provider: Mapped[str] = mapped_column(String(20))
     provider_user_id: Mapped[str] = mapped_column(String(100))
     nickname: Mapped[str | None] = mapped_column(String(100))
+    policy_version: Mapped[str | None] = mapped_column(String(20))
+    policy_confirmed_at: Mapped[datetime | None]
+    age_confirmed_at: Mapped[datetime | None]
 
 
 class AuthSession(Base):

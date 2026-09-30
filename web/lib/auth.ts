@@ -30,9 +30,17 @@ export const refreshAuthSession = () => authRequest<{ ok: true }>("/refresh", "P
 export const logoutAuthSession = () => authRequest<{ ok: true }>("/logout", "POST");
 export const deleteAuthAccount = () => authRequest<{ ok: true }>("/account", "DELETE");
 
-export function beginKakaoLogin(returnTo = "/?restore=1") {
+export const CURRENT_POLICY_VERSION = "2026-09-30";
+
+export function beginKakaoLogin(returnTo = "/?restore=1", requestNickname = false) {
   sessionStorage.setItem("storyroute.auth.return-to", returnTo);
-  window.location.assign("/api/v1/auth/kakao/login?request_nickname=true");
+  const params = new URLSearchParams({
+    request_nickname: String(requestNickname),
+    policy_version: CURRENT_POLICY_VERSION,
+    age_confirmed: "true",
+    terms_agreed: "true",
+  });
+  window.location.assign(`/api/v1/auth/kakao/login?${params.toString()}`);
 }
 
 export function consumeLoginReturnTo() {

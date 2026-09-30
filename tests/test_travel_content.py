@@ -247,7 +247,7 @@ def test_ai_city_nullable_schema_and_server_city_validation(city):
             {"type": "output_text", "text": json.dumps(output)}]}]})
     ai = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     trip = DayTripService(Settings(_env_file=None, openai_api_key="test", openai_model="test"), national, ai)
-    result = asyncio.run(trip.intent("춘천 박물관"))
+    result = asyncio.run(trip.intent("춘천 박물관", ai_consent=True, privacy_version="2026-09-30"))
     assert result["mode"] == ("manual" if city == "서울시" else "ai")
     assert result["intent"]["city"] == ("춘천시" if city == "서울시" else city)
     asyncio.run(ai.aclose())

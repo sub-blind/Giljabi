@@ -19,8 +19,11 @@ def test_offline_migration_needs_no_database_settings(monkeypatch, direction):
         assert "DEFERRABLE INITIALLY IMMEDIATE" in output.getvalue()
         assert "TIMESTAMP WITH TIME ZONE" in output.getvalue()
         assert "CREATE TABLE place_records" in output.getvalue()
+        assert "ADD COLUMN policy_version" in output.getvalue()
+        assert "ADD COLUMN age_confirmed_at" in output.getvalue()
     else:
-        command.downgrade(config, "20260918_01:base", sql=True)
+        command.downgrade(config, "20260930_01:base", sql=True)
         sql = output.getvalue()
         assert sql.index("DROP TABLE place_records") < sql.index("DROP TABLE users")
+        assert "DROP COLUMN policy_version" in sql
     assert "postgresql://" not in output.getvalue()

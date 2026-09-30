@@ -57,7 +57,7 @@ async def get_accessibility(place_id: str, service=Depends(get_travel_content)):
 
 @router.post("/intent", summary="여행 문장 해석", response_model=IntentResponse, response_description="수정 가능한 여행 조건")
 async def parse_intent(body: IntentRequest, service=Depends(get_day_trip)):
-    return await service.intent(body.query)
+    return await service.intent(body.query, ai_consent=body.aiConsent, privacy_version=body.privacyVersion)
 
 
 @router.post("/places/search", summary="실제 강원도 장소 검색", response_model=SearchResponse, response_description="실제 후보와 적용 조건")

@@ -393,3 +393,8 @@ npm run build
 - [OpenStreetMap 타일 이용 안내](https://operations.osmfoundation.org/policies/tiles/)
 - [대한민국 시군구 지도 데이터 mapcn-kr](https://github.com/DevMinGeonPark/mapcn-kr) — 통계청 SGIS·행정안전부 자료를 가공한 CC BY 4.0 경계 데이터
 - [공모전 안내](https://lowly-polyanthus-1fb.notion.site/2026-36b5dce406e380e0a3d1f80525667a11)
+
+
+### 개인정보 처리와 선택 AI
+
+AI 문장 해석·코스 설명은 별도 선택이며 기본으로 전송하지 않는다. 기본 문장 조건 정리·지도·사진 검색·코스 생성은 선택 없이 이용할 수 있다. 가입 시 약관·방침·만 14세 이상 확인을 받고 닉네임은 선택으로 분리한다. 계정 저장과 방문·메모의 브라우저 기록은 구분한다. [개인정보 운영 점검](docs/PRIVACY_OPERATIONS.md)에 비공개 문의 주소와 DB 복구본 기간 등 남은 설정을 기록했다. 이 수정만으로 법률상 모든 의무가 완료되었다고 주장하지 않는다.

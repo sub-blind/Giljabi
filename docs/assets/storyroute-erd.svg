@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="760" viewBox="0 0 1500 760" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="840" viewBox="0 0 1500 840" role="img" aria-labelledby="title desc">
   <title id="title">스토리루트 PostgreSQL ERD</title>
   <desc id="desc">사용자, 인증 세션, 코스, 코스 장소, 장소 기록의 관계를 나타낸 데이터베이스 구조도</desc>
   <defs>
@@ -21,21 +21,24 @@
     </style>
   </defs>
 
-  <rect width="1500" height="760" rx="24" fill="#f8fafc"/>
+  <rect width="1500" height="840" rx="24" fill="#f8fafc"/>
   <text x="34" y="48" class="title">스토리루트 PostgreSQL ERD</text>
-  <text x="34" y="75" class="subtitle">SQLAlchemy 모델과 Alembic 초기 마이그레이션 기준 · 모든 외래키 삭제 규칙은 ON DELETE CASCADE</text>
+  <text x="34" y="75" class="subtitle">SQLAlchemy 모델과 Alembic 20260930_01 기준 · 모든 외래키 삭제 규칙은 ON DELETE CASCADE</text>
 
   <!-- users -->
   <g class="entity">
-    <rect x="30" y="110" width="270" height="278" rx="14" fill="#ffffff" stroke="#d8b4fe"/>
+    <rect x="30" y="110" width="270" height="380" rx="14" fill="#ffffff" stroke="#d8b4fe"/>
     <path d="M44 110h242a14 14 0 0 1 14 14v36H30v-36a14 14 0 0 1 14-14z" fill="#7c3aed"/>
     <text x="50" y="143" class="entity-title">users</text>
     <text x="50" y="190" class="field key">PK  id</text><text x="172" y="190" class="field muted">uuid</text>
     <text x="50" y="224" class="field">    provider</text><text x="172" y="224" class="field muted">varchar(20)</text>
     <text x="50" y="258" class="field key">UK  provider_user_id</text>
     <text x="50" y="292" class="field">    nickname</text><text x="172" y="292" class="field muted">nullable</text>
-    <text x="50" y="326" class="field">    created_at</text><text x="172" y="326" class="field muted">timestamptz</text>
-    <text x="50" y="360" class="field">    updated_at</text><text x="172" y="360" class="field muted">timestamptz</text>
+    <text x="50" y="326" class="field">policy_version (nullable)</text>
+    <text x="50" y="360" class="field">policy_confirmed_at (nullable)</text>
+    <text x="50" y="394" class="field">age_confirmed_at (nullable)</text>
+    <text x="50" y="428" class="field">created_at</text><text x="172" y="428" class="field muted">timestamptz</text>
+    <text x="50" y="462" class="field">updated_at</text><text x="172" y="462" class="field muted">timestamptz</text>
   </g>
 
   <!-- courses -->
@@ -84,15 +87,15 @@
 
   <!-- auth_sessions -->
   <g class="entity">
-    <rect x="30" y="490" width="320" height="260" rx="14" fill="#ffffff" stroke="#93c5fd"/>
-    <path d="M44 490h292a14 14 0 0 1 14 14v36H30v-36a14 14 0 0 1 14-14z" fill="#1d4ed8"/>
-    <text x="50" y="523" class="entity-title">auth_sessions</text>
-    <text x="50" y="570" class="field key">PK  id</text><text x="205" y="570" class="field muted">refresh jti</text>
-    <text x="50" y="602" class="field key">FK  user_id</text><text x="205" y="602" class="field muted">uuid</text>
-    <text x="50" y="634" class="field">    token_hash</text><text x="205" y="634" class="field muted">SHA-256</text>
-    <text x="50" y="666" class="field">    expires_at</text>
-    <text x="50" y="698" class="field">    revoked_at</text><text x="205" y="698" class="field muted">nullable</text>
-    <text x="50" y="730" class="field">    created_at</text>
+    <rect x="30" y="560" width="320" height="260" rx="14" fill="#ffffff" stroke="#93c5fd"/>
+    <path d="M44 560h292a14 14 0 0 1 14 14v36H30v-36a14 14 0 0 1 14-14z" fill="#1d4ed8"/>
+    <text x="50" y="593" class="entity-title">auth_sessions</text>
+    <text x="50" y="640" class="field key">PK  id</text><text x="205" y="640" class="field muted">refresh jti</text>
+    <text x="50" y="672" class="field key">FK  user_id</text><text x="205" y="672" class="field muted">uuid</text>
+    <text x="50" y="704" class="field">    token_hash</text><text x="205" y="704" class="field muted">SHA-256</text>
+    <text x="50" y="736" class="field">    expires_at</text>
+    <text x="50" y="768" class="field">    revoked_at</text><text x="205" y="768" class="field muted">nullable</text>
+    <text x="50" y="800" class="field">    created_at</text>
   </g>
 
   <!-- relationships -->
@@ -111,10 +114,10 @@
   <rect class="relation-label-bg" x="1114" y="226" width="72" height="26" rx="13"/>
   <text x="1150" y="244" text-anchor="middle" class="relation-label">1 : 0..1</text>
 
-  <path class="relation" d="M165 388V490"/>
-  <circle class="relation-dot" cx="165" cy="394" r="5"/><circle class="relation-dot" cx="165" cy="484" r="5"/>
-  <rect class="relation-label-bg" x="177" y="423" width="56" height="26" rx="13"/>
-  <text x="205" y="441" text-anchor="middle" class="relation-label">1 : N</text>
+  <path class="relation" d="M165 490V560"/>
+  <circle class="relation-dot" cx="165" cy="496" r="5"/><circle class="relation-dot" cx="165" cy="554" r="5"/>
+  <rect class="relation-label-bg" x="177" y="510" width="56" height="26" rx="13"/>
+  <text x="205" y="528" text-anchor="middle" class="relation-label">1 : N</text>
 
   <text x="410" y="707" class="legend">PK 기본키 · FK 외래키 · UK 복합 유일 제약에 참여 · course_places의 최소 1개 및 연속 순서는 API가 검증</text>
   <text x="410" y="731" class="legend">관광 상세 원문·사진·경로는 저장하지 않으며, content_id는 TourAPI 원천을 가리키는 논리 식별자입니다.</text>
