@@ -46,14 +46,8 @@ export function GangwonRegionMap({ selectedCity, busy, hasSelection, onSelect }:
     </div>
 
     <div className={styles.mapStage}>
-      <div className={styles.mapGlow} aria-hidden="true" />
       <svg className={styles.gangwonMap} viewBox={gangwonMapViewBox} role="group" aria-label="강원특별자치도 18개 시군 선택 지도">
-        <defs>
-          <filter id="map-soft-shadow" x="-25%" y="-25%" width="150%" height="170%">
-            <feDropShadow dx="0" dy="8" stdDeviation="7" floodColor="#173c42" floodOpacity=".18" />
-          </filter>
-        </defs>
-        <g className={styles.mapObject} filter="url(#map-soft-shadow)">
+        <g className={styles.mapObject}>
           {gangwonMapRegions.map((region, index) => {
             const active = selectedCity === region.name;
             const customStyle = { "--region-fill": regionColors[index % regionColors.length] } as CSSProperties;

@@ -244,6 +244,19 @@ def distance_km(first, second):
     return 6371 * 2 * math.asin(math.sqrt(min(1, max(0, value))))
 
 
+def spread_by_city(places):
+    """강원도 전체 결과에서 한 시군이 첫 화면을 독차지하지 않도록 원래 조회 순서를 유지해 섞는다."""
+    buckets = {}
+    for place in places:
+        buckets.setdefault(place["city"], []).append(place)
+    result = []
+    while any(buckets.values()):
+        for bucket in buckets.values():
+            if bucket:
+                result.append(bucket.pop(0))
+    return result
+
+
 def fallback(query):
     categories = [category for category, pattern in [
         ("attraction", "바다|해변|산책|풍경|자연|명소"),
@@ -329,10 +342,11 @@ class DayTripService:
         codes = await self.region_codes()
         scope = self.scope_params(query.intent, codes)
         categories = list(dict.fromkeys(query.intent.categories))
+        # 대표사진이 있는 콘텐츠를 먼저 받아 이름 가나다순으로 첫 화면이 굳지 않게 한다.
         tasks = [self.call(KorServiceOp.AREA_BASED_LIST, **scope,
-                           contentTypeId=TYPES[category], pageNo=query.page, arrange="A") for category in categories]
+                           contentTypeId=TYPES[category], pageNo=query.page, arrange="O") for category in categories]
         tasks.extend(self.call(KorServiceOp.SEARCH_KEYWORD, **scope,
-                               keyword=word, pageNo=query.page, arrange="A") for word in dict.fromkeys(query.intent.keywords))
+                               keyword=word, pageNo=query.page, arrange="O") for word in dict.fromkeys(query.intent.keywords))
         results = await asyncio.gather(*tasks)
         unique = {}
         for items, _ in results:
@@ -341,13 +355,17 @@ class DayTripService:
                 if place and place["category"] in categories and not (
                     place["category"] == "attraction" and re.search("화장실|주차장|관광안내소", place["name"])):
                     unique[place["id"]] = place
-        groups = [sorted([place for place in unique.values() if place["category"] == category],
-                         key=lambda place: (-len(place["evidence"]), not bool(place["imageUrl"]), place["name"]))
-                  for category in categories]
+        groups = []
+        for category in categories:
+            group = sorted([place for place in unique.values() if place["category"] == category],
+                           key=lambda place: (-len(place["evidence"]), not bool(place["imageUrl"])))
+            groups.append(group if query.intent.city else spread_by_city(group))
         places = [group[index] for index in range(18) for group in groups if index < len(group)][:18]
+        notice = ("강원도 전체 결과는 여러 시군과 장소 유형이 한쪽에 몰리지 않도록 나눠 보여줘요."
+                  if not query.intent.city else "선택한 시군에서 실제 조회한 장소예요.")
         return {"places": places, "appliedIntent": query.intent.model_dump(), "page": query.page,
                 "hasMore": query.page < 5 and any(total > query.page * 24 for _, total in results),
-                "notices": ["실제 조회한 후보예요. 키워드는 선호이며 모든 조건의 충족을 보장하지 않아요."],
+                "notices": [notice + " 키워드는 선호이며 모든 조건의 충족을 보장하지 않아요."],
                 "retrievedAt": timestamp()}
 
     async def detail(self, place_id, intent=None, include_visit_info=True):

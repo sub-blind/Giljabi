@@ -46,9 +46,12 @@ def test_province_search_omits_city_code_and_city_search_filters_actual_address(
     service = DayTripService(Settings(_env_file=None), record)
     result = asyncio.run(service.search(SearchRequest.model_validate({"intent": INTENT})))
     assert len(result["places"]) == 2 and all("sigunguCode" not in params for params in requests)
+    assert all(params["arrange"] == "O" for params in requests)
+    assert "여러 시군" in result["notices"][0]
     requests.clear()
     result = asyncio.run(service.search(SearchRequest.model_validate({"intent": {**INTENT, "city": "강릉"}})))
     assert result["places"] == [] and all(params["sigunguCode"] == "1" for params in requests)
+    assert "선택한 시군" in result["notices"][0]
     assert fallback("춘천 박물관 하루 여행").city == "춘천시"
 
 def test_invalid_city_and_photo_page_rejected_before_external_call():
