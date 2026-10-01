@@ -450,7 +450,7 @@ export default function StoryRoute() {
       {aiConsent && state.phase !== "create" && <p className={styles.privacyHint}>이번 화면에서 AI 설명을 선택했어요. <button type="button" disabled={busy} onClick={() => setAiConsent(false)}>이후 AI 전송 중지</button></p>}
 
       {state.phase === "create" ? <>
-        <section className={styles.hero}><p className={styles.eyebrow}>강원도에서 보내는 하루</p><h1>{title}</h1>
+        <section className={styles.hero}><p className={styles.eyebrow}>강원도에서 보내는 가을 하루</p><h1>{title}</h1>
           <p className={styles.heroText}>마음에 드는 곳을 최대 세 곳 담아, 나만의 여행을 이어가세요.</p></section>
         <SearchWorkspace mode={searchMode} onMode={setSearchMode} query={state.query} onQuery={query => update({ query })}
           intent={state.intent} intentMode={state.mode} onIntent={intent => update({ intent })} cities={cities}
