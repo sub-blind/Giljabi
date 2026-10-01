@@ -15,13 +15,14 @@ const searchModes = [
 ] as const;
 
 export function SearchWorkspace({ mode, onMode, query, onQuery, intent, intentMode, onIntent, cities,
-  busy, parsing, connectionState, tourismReady, aiReady, aiConsent, onAiConsent, photosReady, hasSelection, onParse, onSearch, onCity, onPhoto, onReconnect }: {
+  busy, parsing, connectionState, tourismReady, aiReady, aiConsent, onAiConsent, photosReady, slowRequest, onCancel, hasSelection, onParse, onSearch, onCity, onPhoto, onReconnect }: {
   mode: SearchMode; onMode: (mode: SearchMode) => void; query: string; onQuery: (query: string) => void;
   intent: Intent; intentMode: "ai" | "manual"; onIntent: (intent: Intent) => void;
   cities: { code: string; name: string }[]; busy: boolean; parsing: boolean;
   connectionState: ConnectionState; tourismReady: boolean; aiReady: boolean | null;
   aiConsent: boolean; onAiConsent: (value: boolean) => void;
-  photosReady: boolean; hasSelection: boolean; onParse: () => void; onSearch: () => void;
+  photosReady: boolean; slowRequest: boolean; onCancel: () => void;
+  hasSelection: boolean; onParse: () => void; onSearch: () => void;
   onCity: (city: string | null) => void; onPhoto: (photo: TravelPhoto) => void; onReconnect: () => void;
 }) {
   return <>
@@ -42,7 +43,7 @@ export function SearchWorkspace({ mode, onMode, query, onQuery, intent, intentMo
       </div>
       <div id="search-pane-conditions" role="tabpanel" aria-labelledby="search-tab-conditions" hidden={mode !== "conditions"} className={`${styles.workspacePane} ${styles.mapSearchPane}`}>
         <GangwonRegionMap selectedCity={intent.city} busy={busy} hasSelection={hasSelection} onSelect={onCity} />
-        <IntentEditor intent={intent} cities={cities} mode={intentMode} busy={busy} searchReady={tourismReady} connectionState={connectionState} onChange={onIntent} onSearch={onSearch} hasSelection={hasSelection} mapDriven />
+        <IntentEditor intent={intent} cities={cities} mode={intentMode} busy={busy} slowRequest={slowRequest} onCancel={onCancel} searchReady={tourismReady} connectionState={connectionState} onChange={onIntent} onSearch={onSearch} hasSelection={hasSelection} mapDriven />
       </div>
       <div id="search-pane-sentence" role="tabpanel" aria-labelledby="search-tab-sentence" hidden={mode !== "sentence"} className={styles.workspacePane}>
         <div className={styles.workspaceHeading}><h2>하고 싶은 여행을 적어주세요</h2><p>지역과 관심사를 정리한 뒤, 검색할 조건을 함께 확인해요.</p></div>
@@ -58,7 +59,7 @@ export function SearchWorkspace({ mode, onMode, query, onQuery, intent, intentMo
           <div className={styles.examples} aria-label="여행 문장 예시">{["강원도 바다 보고 카페 가기", "춘천에서 박물관 구경하고 식사하기"].map(example =>
             <button key={example} type="button" disabled={busy} onClick={() => { onQuery(example); document.getElementById("trip-query")?.focus(); }}>{example}<ArrowRight size={13} aria-hidden="true" /></button>)}</div>
           <div className={styles.searchSubmit}>
-            <p>{connectionState === "connecting" ? "바로 시작할 수 있어요. 첫 문장 해석은 잠든 서버를 깨우느라 조금 오래 걸릴 수 있어요."
+            <p>{connectionState === "connecting" ? "원하는 여행을 적으면 조건을 정리해요. 서버 연결도 함께 확인합니다."
               : connectionState === "error" ? "버튼을 누르면 서버 연결과 문장 해석을 함께 다시 시도해요."
               : !aiConsent || aiReady === false ? "AI 전송 없이 기본 조건을 정리해요. 검색 전에 확인해주세요." : "해석한 조건은 검색 전에 수정할 수 있어요."}</p>
             <button className={styles.primary} type="submit" disabled={busy}>{parsing ? "조건 확인 중…" : connectionState === "error" ? "다시 연결하며 조건 확인" : "여행 조건 확인"}<ArrowRight size={17} aria-hidden="true" /></button>

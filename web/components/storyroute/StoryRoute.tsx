@@ -36,20 +36,6 @@ function normalize(intent: Intent): Intent {
   return { ...intent, keywords };
 }
 
-function ConnectionProgress({ retrying }: { retrying: boolean }) {
-  const [seconds, setSeconds] = useState(0);
-  useEffect(() => {
-    const startedAt = Date.now();
-    const timer = setInterval(() => setSeconds(Math.floor((Date.now() - startedAt) / 1000)), 1000);
-    return () => clearInterval(timer);
-  }, []);
-  return <div className={styles.connectionNotice}>
-    <RefreshCw className={styles.connectionSpinner} size={18} aria-hidden="true" />
-    <div><strong role="status">{retrying ? "여행 서버에 다시 연결하고 있어요" : "여행 서버를 미리 깨우고 있어요"}</strong>
-      <span><span aria-hidden="true">{seconds}초째 </span>확인 중이에요. 조건을 고르고 검색을 시작해도 되며, 쉬고 있던 서버의 첫 요청은 1분 안팎 걸릴 수 있어요.</span></div>
-  </div>;
-}
-
 export default function StoryRoute() {
   const auth = useAuth();
   const { error: authError, reload: reloadAuth } = auth;
@@ -114,11 +100,8 @@ export default function StoryRoute() {
     setConnection(null);
     setConnectionState("connecting");
     async function connect() {
-      // 시군 목록은 지도에 포함된 기본 목록을 먼저 쓰고 별도로 갱신한다.
-      // 외부 관광 API가 늦어져도 서버 상태 확인과 검색 버튼 활성화를 막지 않는다.
-      void getRegions(controller.signal).then(value => {
-        if (active) setCities(value.cities);
-      }).catch(() => undefined);
+      // 지도에 포함된 시군 목록으로 바로 시작한다. 공식 목록 조회는 서버가 준비된 뒤에만 실행한다.
+      // 첫 방문에 관광 API 호출이 상태 확인과 경쟁하지 않도록 한다.
       // 무료 서버의 절전 해제는 첫 요청에서 충분히 기다리고, 실패하면 짧은 상태 요청으로 재확인한다.
       // 첫 확인이 모두 실패하면 별도 효과에서 간격을 늘려 자동 재연결한다.
       const statusTimeouts = connectionTimeoutsForAttempt(connectionAttempt);
@@ -128,6 +111,9 @@ export default function StoryRoute() {
         if (statusResult.ok) {
           setConnection(statusResult.value);
           setConnectionState("ready");
+          void getRegions(controller.signal).then(value => {
+            if (active) setCities(value.cities);
+          }).catch(() => undefined);
           if (connectionAttempt > 0 || attempt > 0) setMessage("여행 서버에 다시 연결했어요.");
           return;
         }
@@ -455,11 +441,10 @@ export default function StoryRoute() {
         onClick={() => { if (phase.id === "course") { if (state.course) update({ phase: "course" }); else void build(); } else if (phase.id === "create") openCreate(); else update({ phase: phase.id }); }}><span>{index + 1}</span>{phase.label}</button>)}</nav>
       {connection?.testing && <p className={styles.warning}>기능 검증용 테스트 데이터예요. 실제 관광 장소가 아니에요.</p>}
       {connection && !connection.tourismReady && <p className={styles.warning}>관광 데이터 연결을 준비 중이에요. 지금은 여행 조건을 입력하고 수정할 수 있어요.</p>}
-      {connectionState === "connecting" && <ConnectionProgress retrying={connectionAttempt > 0} />}
       {connectionState === "error" && <div className={styles.connectionError} role="alert"><div><strong>여행 서버의 응답을 아직 받지 못했어요</strong><span>{nextConnectionRetryDelayMs === null ? "검색 버튼으로 실제 요청을 다시 보내거나 직접 재연결할 수 있어요." : `${nextConnectionRetryDelayMs / 1000}초 후 자동으로 다시 확인해요. 검색 버튼을 누르면 바로 실제 요청을 보냅니다.`} 선택한 조건은 그대로 유지돼요.</span></div><button className={styles.secondary} type="button" disabled={busy} onClick={retryConnectionNow}><RefreshCw size={15} aria-hidden="true" />지금 다시 연결</button></div>}
       {connectionState === "ready" && authError && <div className={styles.authNotice} role="status"><span>로그인 상태만 확인하지 못했어요. 여행 찾기는 그대로 이용할 수 있어요.</span><button className={styles.textButton} type="button" onClick={() => void reloadAuth().catch(() => undefined)}>로그인 다시 확인</button></div>}
       <div className={styles.status} role="status" aria-live="polite">{message || busyMessage}</div>
-      {slowRequest && busy && <div className={styles.slowRequest} role="status" aria-live="polite"><div><strong>조금 더 확인하고 있어요</strong><span>{state.busy === "intent" ? "서버를 깨운 뒤 여행 문장을 해석하고 있어요." : state.busy === "search" ? "한국관광공사에서 실제 장소를 확인하고 있어요." : state.busy === "course" || state.busy === "restore" ? "선택한 장소를 다시 확인하고 코스를 정리하고 있어요." : "현재 순서의 자동차 경로를 확인하고 있어요."} 기다리기 어렵다면 취소해도 입력과 기존 결과는 사라지지 않아요.</span></div><button className={styles.secondary} type="button" onClick={cancelCurrentRequest}>요청 취소</button></div>}
+      {slowRequest && busy && !(state.phase === "create" && searchMode === "conditions" && state.busy === "search") && <div className={styles.slowRequest} role="status" aria-live="polite"><div><strong>조금 더 확인하고 있어요</strong><span>{state.busy === "intent" ? "여행 문장에서 조건을 정리하고 있어요." : state.busy === "search" ? "한국관광공사에서 실제 장소를 확인하고 있어요." : state.busy === "course" || state.busy === "restore" ? "선택한 장소를 다시 확인하고 코스를 정리하고 있어요." : "현재 순서의 자동차 경로를 확인하고 있어요."} 기다리기 어렵다면 취소해도 입력과 기존 결과는 사라지지 않아요.</span></div><button className={styles.secondary} type="button" onClick={cancelCurrentRequest}>요청 취소</button></div>}
       {error && <p className={styles.error} role="alert">{error}</p>}
       {notices.map((item, index) => <p key={index} className={styles.notice}>{item}</p>)}
       {aiConsent && state.phase !== "create" && <p className={styles.privacyHint}>이번 화면에서 AI 설명을 선택했어요. <button type="button" disabled={busy} onClick={() => setAiConsent(false)}>이후 AI 전송 중지</button></p>}
@@ -474,6 +459,7 @@ export default function StoryRoute() {
           aiReady={canTryServerFeature(connectionState, !!connection?.aiReady)}
           aiConsent={aiConsent} onAiConsent={setAiConsent}
           photosReady={canTryServerFeature(connectionState, !!connection?.photosReady)}
+          slowRequest={slowRequest} onCancel={cancelCurrentRequest}
           hasSelection={!!state.selectedIds.length} onSearch={() => void search()} onPhoto={explore} onReconnect={retryConnectionNow}
           onCity={city => {
             update({ intent: { ...state.intent, city, keywords: [], preferences: [], unsupportedConditions: [] }, mode: "manual", intentReady: true });

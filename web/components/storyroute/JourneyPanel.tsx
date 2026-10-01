@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  Accessibility, ArrowDown, ArrowUp, Check, CheckCircle2, ExternalLink, Headphones,
-  Info, MapPin, Navigation, Play, RefreshCw, Route, Save, StickyNote,
+  ArrowDown, ArrowUp, Check, CheckCircle2, ExternalLink, Info,
+  MapPin, Navigation, Play, RefreshCw, Route, Save, StickyNote,
 } from "lucide-react";
 import { loadJourney, saveJourney, type Journey } from "@/lib/storyroute/journey";
 import { directionsLabel, directionsUrl } from "@/lib/storyroute/navigation";
@@ -141,8 +141,8 @@ export function JourneyPanel({ places, candidates, route, routeOverview, routeRe
 
     <div className={styles.tripStats} aria-label="여행 요약">
       <div className={styles.tripStat}><span>방문 진행</span><strong>{count} / {places.length}곳</strong></div>
-      <button className={`${styles.tripStat} ${styles.tripStatButton}`} type="button" onClick={revealRoute}><span>장소 간 이동</span><strong>{routeMinutes === null ? "확인 전" : `약 ${routeMinutes}분`}</strong><small>{routeDistance ? `${routeDistance}km · 지도 보기` : "지도 보기 ↓"}</small></button>
-      <div className={styles.tripStat}><span>남긴 기록</span><strong>{noteCount}개</strong></div>
+      <div className={styles.tripStat}><span>장소 간 이동</span><strong>{routeMinutes === null ? "확인 전" : `약 ${routeMinutes}분`}</strong>{routeDistance && <small>{routeDistance}km</small>}</div>
+      <div className={styles.tripStat}><span>여행 메모</span><strong>{noteCount}개</strong></div>
     </div>
 
     {!journey ? <div className={styles.nextAction}>
@@ -157,13 +157,10 @@ export function JourneyPanel({ places, candidates, route, routeOverview, routeRe
       <Check size={28} aria-hidden="true" /><div><strong>{places.length}곳을 모두 방문했어요</strong><p>장소별 메모는 이 브라우저에 남아 있어요. 오늘의 기억을 다시 살펴보세요.</p></div>
     </div> : next && <div className={styles.nextAction}>
       <div className={styles.nextActionIcon}><Navigation size={25} aria-hidden="true" /></div>
-      <div className={styles.nextActionMain}><span>{nextIndex + 1}번째 · 지금 갈 곳</span><strong>{next.name}</strong><p>{next.address}</p></div>
+      <div className={styles.nextActionMain}><span>{nextIndex + 1}번째 · 지금 갈 곳</span><strong>{next.name}</strong><p>{next.address}</p>
+        <button className={styles.nextDetailLink} type="button" disabled={busy} onClick={() => onDetail(next.id, "intro")}>장소 정보 보기</button></div>
       <div className={styles.nextActions}>
         <a className={styles.primary} href={directionsUrl(next, previous)} target="_blank" rel="noopener noreferrer">{directionsLabel(next, previous)}<ExternalLink size={15} aria-hidden="true" /></a>
-        <button className={styles.secondary} type="button" disabled={busy} onClick={() => onDetail(next.id, "intro")}><Info size={15} aria-hidden="true" />방문 정보</button>
-        <button className={styles.secondary} type="button" disabled={busy} onClick={() => onDetail(next.id, "story")}><Headphones size={15} aria-hidden="true" />이야기</button>
-        <button className={styles.secondary} type="button" disabled={busy} onClick={() => onDetail(next.id, "access")}><Accessibility size={15} aria-hidden="true" />편의정보</button>
-        <button className={styles.visitDoneButton} type="button" disabled={busy} onClick={() => persist({ ...journey, visitedIds: [...journey.visitedIds, next.id] }, `${next.name} 방문을 완료했어요.`)}><Check size={17} aria-hidden="true" />방문 완료</button>
       </div>
     </div>}
 
@@ -188,13 +185,11 @@ export function JourneyPanel({ places, candidates, route, routeOverview, routeRe
           </div>
           <div className={styles.stopQuickActions}>
             <div className={styles.stopInfoActions}>
-              <button className={styles.textButton} type="button" disabled={busy} onClick={() => onDetail(place.id, "intro")}><Info size={14} aria-hidden="true" />소개</button>
-              <button className={styles.textButton} type="button" disabled={busy} onClick={() => onDetail(place.id, "story")}><Headphones size={14} aria-hidden="true" />이야기</button>
-              <button className={styles.textButton} type="button" disabled={busy} onClick={() => onDetail(place.id, "access")}><Accessibility size={14} aria-hidden="true" />편의</button>
+              <button className={styles.textButton} type="button" disabled={busy} onClick={() => onDetail(place.id, "intro")}><Info size={14} aria-hidden="true" />장소 정보 보기</button>
             </div>
             <div className={styles.stopManagementActions}>
               {!isVisited && <button className={styles.textButton} type="button" disabled={busy} aria-expanded={replacementFor === place.id} onClick={() => setReplacementFor(replacementFor === place.id ? null : place.id)}><RefreshCw size={14} aria-hidden="true" />장소 변경</button>}
-              {journey && !isVisited && !isCurrent && <button className={styles.textButton} type="button" disabled={busy} onClick={() => persist({ ...journey, visitedIds: [...journey.visitedIds, place.id] }, `${place.name} 방문을 완료했어요.`)}><Check size={14} aria-hidden="true" />방문 완료</button>}
+              {journey && !isVisited && <button className={isCurrent ? styles.visitCompleteAction : styles.textButton} type="button" disabled={busy} onClick={() => persist({ ...journey, visitedIds: [...journey.visitedIds, place.id] }, `${place.name} 방문을 완료했어요.`)}><Check size={14} aria-hidden="true" />방문 완료로 표시</button>}
               {journey && isVisited && <button className={styles.textButton} type="button" disabled={busy} onClick={() => persist({ ...journey, visitedIds: journey.visitedIds.filter(id => id !== place.id) }, "방문 체크를 되돌렸어요.")}>완료 취소</button>}
             </div>
           </div>

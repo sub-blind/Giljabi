@@ -2,8 +2,9 @@ import { categoryLabels, type Category, type Intent } from "@/lib/storyroute/typ
 import type { ConnectionState } from "@/lib/storyroute/connection";
 import styles from "./StoryRoute.module.css";
 
-export function IntentEditor({ intent, cities, mode, busy, searchReady, connectionState, onChange, onSearch, hasSelection = false, mapDriven = false }: {
+export function IntentEditor({ intent, cities, mode, busy, slowRequest, onCancel, searchReady, connectionState, onChange, onSearch, hasSelection = false, mapDriven = false }: {
   intent: Intent; cities: { code: string; name: string }[]; mode: "ai" | "manual"; busy: boolean;
+  slowRequest: boolean; onCancel: () => void;
   searchReady: boolean; connectionState: ConnectionState;
   onChange: (intent: Intent) => void; onSearch: () => void; hasSelection?: boolean; mapDriven?: boolean;
 }) {
@@ -34,8 +35,9 @@ export function IntentEditor({ intent, cities, mode, busy, searchReady, connecti
     <div className={styles.searchSubmit}><p>{!searchReady
       ? "관광 데이터 설정을 확인하고 있어요. 잠시 뒤 다시 시도해주세요."
       : connectionState === "error" ? "버튼을 누르면 서버 연결과 장소 검색을 함께 다시 시도해요."
-      : connectionState === "connecting" ? "검색을 바로 시작할 수 있어요. 잠든 서버를 깨우는 첫 검색만 조금 오래 걸릴 수 있어요."
+      : connectionState === "connecting" ? "지역과 장소 유형을 고르면 실제 관광지를 찾아요."
       : hasSelection ? "새로 검색하면 담아둔 장소가 초기화돼요. 검색이 실패하면 이전 결과를 유지해요." : "장소를 고른 뒤 방문 순서와 이동 경로를 정해요."}</p>
       <button className={styles.primary} type="button" onClick={onSearch} disabled={busy || !searchReady}>{busy ? "장소를 찾고 있어요…" : !searchReady ? "관광 데이터 준비 중…" : connectionState === "error" ? "다시 연결하며 장소 찾기 →" : "장소 찾아보기 →"}</button></div>
+    {busy && slowRequest && <div className={styles.inlineWait} role="status"><span>실제 관광지를 확인하는 데 시간이 더 걸리고 있어요. 선택한 조건은 그대로 유지돼요.</span><button className={styles.secondary} type="button" onClick={onCancel}>검색 취소</button></div>}
   </section>;
 }

@@ -135,7 +135,7 @@ export function PhotoExplorer({ cities, ready, connectionState, busy: tripBusy, 
       <button type="submit" className={styles.primary} disabled={busy || !ready}>{busy ? "사진 조회 중…" : connectionState === "error" ? "다시 연결하며 사진 보기" : "사진 둘러보기"}</button>
     </form>
     {(connectionState === "error" || !ready) && <p className={styles.small}>{connectionState === "connecting"
-      ? "사진 조회를 바로 시작할 수 있어요. 첫 요청만 조금 오래 걸릴 수 있어요."
+      ? "사진을 고르면 촬영 지역의 관광지를 함께 살펴볼 수 있어요."
       : connectionState === "error" ? "버튼을 누르면 서버 연결과 관광사진 조회를 함께 다시 시도해요."
       : "관광사진 기능을 준비 중이에요. 지도로 장소를 찾아주세요."}</p>}
     {busy && <div className={styles.photoProgress} role="status" aria-live="polite"><span>{slow ? "관광사진과 촬영지를 계속 확인하고 있어요. 이전 사진은 그대로 유지됩니다." : "관광사진을 찾고 있어요…"}</span>{slow && <button className={styles.secondary} type="button" onClick={cancelLoad}>사진 조회 취소</button>}</div>}
