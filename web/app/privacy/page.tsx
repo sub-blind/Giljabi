@@ -63,7 +63,7 @@ export default function PrivacyPage() {
       <section className={styles.section} id="storage">
         <h2>4. 쿠키와 브라우저 저장소</h2>
         <p>인증 쿠키는 HttpOnly·SameSite=Lax를 적용하고 운영 HTTPS에서 Secure를 사용합니다. 접근 쿠키 기본 유효기간은 15분입니다. 로그인하지 않고 저장한 코스, 방문 완료 표시, 장소별 메모는 현재 브라우저의 로컬 저장소에만 남으며 서버 계정과 자동으로 동기화되지 않습니다.</p>
-        <p>방문 완료는 직접 누른 표시이며 GPS 위치 인증이 아닙니다. 로컬 기록은 기기 기록 삭제 또는 브라우저 저장소 삭제까지 남습니다. 쿠키를 차단하면 로그인을 이용할 수 없고, 브라우저 저장소를 지우면 해당 기기에 보관한 코스와 여행 기록이 삭제됩니다.</p>
+        <p>방문 완료는 직접 누른 표시이며 GPS 위치 인증이 아닙니다. 로컬 기록은 기기 기록 삭제·회원 탈퇴·브라우저 저장소 삭제 시 지워집니다. 쿠키를 차단하면 로그인을 이용할 수 없고, 브라우저 저장소를 지우면 해당 기기에 보관한 코스와 여행 기록이 삭제됩니다.</p>
       </section>
       <section className={styles.section} id="infrastructure">
         <h2>5. 외부 인프라와 국외 처리</h2>
@@ -83,7 +83,7 @@ export default function PrivacyPage() {
       </section>
       <section className={styles.section} id="rights">
         <h2>6. 이용자의 권리와 행사 방법</h2>
-        <p>로그인한 이용자는 계정과 계정에 저장한 모든 코스를 직접 삭제할 수 있습니다. 현재 기기에 저장한 코스·방문·메모도 별도로 삭제할 수 있습니다. 서비스 화면에서 삭제한 정보는 복구할 수 없습니다. 외부 운영 로그·복구본은 위 보관 조건이 적용됩니다.</p>
+        <p>로그인한 이용자는 계정과 계정에 저장한 모든 코스를 직접 삭제할 수 있습니다. 현재 기기에 저장한 코스·방문·메모는 별도로 삭제할 수 있고, 회원 탈퇴 시에도 함께 지워집니다. 서비스 화면에서 삭제한 정보는 복구할 수 없습니다. 외부 운영 로그·복구본은 위 보관 조건이 적용됩니다.</p>
         <div className={styles.actions}><Link className={styles.primary} href="/account">계정·개인정보 관리</Link>{email && <a className={styles.secondary} href={`mailto:${email}`}>비공개 개인정보 문의</a>}</div>
         <h3>개인정보 보호 담당</h3>
         <p>담당: StoryRoute 운영자. 열람·정정·삭제·처리정지 요청을 접수합니다.</p>
