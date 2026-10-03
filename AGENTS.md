@@ -10,7 +10,6 @@
 
 - 작업 대상은 이 Tourism 저장소다.
 - 최신 기획 기준은 `docs/PROJECT_PLAN.md`, `docs/MVP_USER_SCENARIO.md`, `docs/API_SELECTION_GANGWON.md`다. `docs/FRONTEND_API_SPEC.md`는 현재 구현 상태를 설명한다.
-- `storyroute_omx_dev_ready_pack`은 이전의 넓은 범위를 담은 참고 자료다. 현재 기능 범위는 최신 문서를 우선한다.
 - 한 사람이 프런트와 백엔드를 개발한다. 사용자가 정정한 대상은 강원특별자치도 전체다. 당일 여행, 최대 세 장소를 기준으로 하며 한두 장소로도 코스를 만들 수 있다.
 - 현재 구현은 강원도 전체 검색과 18개 시군 선택을 지원한다. 국문 관광정보의 지역코드는 실제 목록에서 조회하고 연관 관광지의 별도 코드는 공식 코드표를 사용한다. 서비스별 ID를 직접 결합하지 않는다.
 - 기존 Next.js·React·TypeScript와 FastAPI 구조를 사용한다.
