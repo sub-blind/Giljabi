@@ -126,6 +126,8 @@
 
 이 계약은 외부 TourAPI의 원형 필드가 아니다. 내부 타입은 `web/lib/storyroute/types.ts`, 서버 모델은 `app/services/day_trip.py`에 있다. [실제 서버에서 추출한 계약](../contracts/day-trip.openapi.json)과 함께 관리한다.
 
+장소 검색 응답에는 대표 사진만 포함한다. 검색 결과 카드의 사진을 처음 넘길 때 `GET /places/{place_id}/images`를 호출하고, 마지막 사진에서 더 넘기면 `hasMore`에 따라 다음 페이지를 요청한다. 카드 사진을 불러오는 동안에도 장소 선택·상세 기능은 그대로 사용할 수 있다.
+
 ### 여행 조건
 
 ```json

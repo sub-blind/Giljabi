@@ -899,3 +899,15 @@
   .placeGalleryFew:has(> :only-child) { grid-template-columns:minmax(0,1fr); }
   .placeGalleryItem figcaption { min-height:38px; }
 }
+
+.placeCarousel { position:relative; isolation:isolate; touch-action:pan-y; user-select:none; }
+.placeCarousel:focus-visible { outline:3px solid var(--sr-teal); outline-offset:-3px; }
+.placeCarouselArrow { position:absolute; z-index:2; top:50%; display:grid; place-items:center; width:40px; height:40px; padding:0; transform:translateY(-50%); border:1px solid #d9e2dc; border-radius:10px; background:#fffffff0; color:var(--sr-ink); box-shadow:0 2px 8px #1426211f; cursor:pointer; }
+.placeCarouselArrow:hover:not(:disabled) { background:#fff; border-color:var(--sr-teal); }
+.placeCarouselArrow:disabled { opacity:.65; cursor:wait; }
+.placeCarouselPrevious { left:10px; }
+.placeCarouselNext { right:10px; }
+.placeCarouselCredit,.placeCarouselPosition { position:absolute; z-index:1; bottom:9px; padding:5px 8px; border-radius:6px; background:#172321bd; color:#fff; font-size:11px; line-height:1.25; }
+.placeCarouselCredit { left:9px; }
+.placeCarouselPosition { right:9px; max-width:calc(100% - 110px); text-align:right; }
+@media (max-width:767px) { .placeCarouselArrow { width:38px; height:38px; } }
