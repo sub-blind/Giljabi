@@ -748,6 +748,8 @@
   .scope { display:none; }
   .headerIconButton { min-width:44px; padding:8px; }
   .headerIconButton span { display:none; }
+  .accountButton { flex:0 0 44px; width:44px; height:44px; padding:0; gap:0; }
+  .accountButton span { display:none; }
   .main { padding-top:8px; padding-bottom:36px; }
   .steps { gap:0; margin:0 -16px 20px; padding-inline:16px; }
   .steps button { flex:1; justify-content:center; gap:5px; padding:8px 2px 12px; font-size:12px; white-space:nowrap; }
@@ -834,10 +836,43 @@
 
 @media (max-width:359px) {
   .hero::before { display:none; }
-  .brand { font-size:19px; }
-  .account { margin-left:auto; }
+  .header { gap:4px; }
+  .brand { font-size:18px; gap:5px; }
+  .account { gap:4px; margin-left:auto; }
   .loginButton { width:44px; padding:0; font-size:0; }
   .loginButton svg { width:18px; height:18px; }
   .steps button { flex-direction:column; }
   .searchModes button { flex-direction:column; }
+}
+
+.daySchedule { margin-top:20px; padding:22px 24px; border:1px solid var(--sr-line); border-radius:14px; background:var(--autumn-cream); }
+.dayScheduleHead { display:flex; justify-content:space-between; align-items:end; flex-wrap:wrap; gap:16px; }
+.dayScheduleHead h3 { margin:0; color:var(--sr-ink); font-size:21px; font-weight:800; letter-spacing:-.03em; }
+.dayScheduleStart { display:flex; align-items:center; gap:10px; color:var(--sr-ink); font-size:13px; font-weight:700; }
+.dayScheduleStart input,.dayScheduleStay select { min-height:44px; padding:8px 12px; border:1px solid var(--sr-line); border-radius:8px; background:#fff; color:var(--sr-ink); font:inherit; }
+.dayScheduleStart input { width:128px; }
+.dayScheduleNote { margin:12px 0 0; color:var(--sr-muted); font-size:12px; line-height:1.6; }
+.dayScheduleStops { margin:18px 0 0; padding:0; list-style:none; border-top:1px solid var(--sr-line); }
+.dayScheduleStops li { display:grid; grid-template-columns:28px minmax(0,1fr); gap:14px; padding:16px 0; border-bottom:1px solid var(--sr-line); }
+.dayScheduleNumber { display:grid; place-items:center; width:28px; height:28px; border:1px solid #b9d4c6; border-radius:50%; color:var(--sr-teal); font-size:12px; font-weight:800; }
+.dayScheduleStop { min-width:0; }
+.dayScheduleDrive { margin:0 0 8px; color:var(--sr-muted); font-size:12px; }
+.dayScheduleStopLine,.dayScheduleStay { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px 16px; }
+.dayScheduleStopLine strong { min-width:0; color:var(--sr-ink); font-size:15px; overflow-wrap:anywhere; }
+.dayScheduleStopLine span { color:var(--sr-teal); font-size:13px; font-weight:700; white-space:nowrap; }
+.dayScheduleStay { justify-content:flex-start; margin-top:10px; color:var(--sr-muted); font-size:12px; }
+.dayScheduleStay select { min-width:98px; min-height:40px; font-size:12px; }
+.dayScheduleStay span { margin-left:auto; color:var(--sr-muted); white-space:nowrap; }
+.dayScheduleResult { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px 20px; margin-top:16px; color:var(--sr-muted); font-size:12px; }
+.dayScheduleResult strong { color:var(--sr-teal); font-size:15px; }
+.dayScheduleWarning { margin:12px 0 0; padding:10px 12px; border-left:3px solid var(--autumn-brick); background:#faf3e9; color:var(--sr-ink); font-size:12px; line-height:1.6; }
+@media (max-width:767px) {
+  .daySchedule { margin-top:12px; padding:18px 16px; }
+  .dayScheduleHead { align-items:start; }
+  .dayScheduleHead h3 { font-size:19px; }
+  .dayScheduleStart { justify-content:space-between; width:100%; }
+  .dayScheduleStopLine span { white-space:normal; }
+  .dayScheduleStay span { margin-left:0; width:100%; }
+  .dayScheduleResult { display:block; }
+  .dayScheduleResult strong { display:block; margin-top:6px; }
 }

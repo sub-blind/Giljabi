@@ -105,3 +105,45 @@ test("상태 확인이 실패해도 실제 기능 요청은 시도하고 준비 
   assert.equal(api.canTryServerFeature("ready", true), true);
   assert.equal(api.canTryServerFeature("ready", false), false);
 });
+
+test("하루 일정은 각 장소 체류와 실제 조회한 구간 시간을 차례로 더한다", () => {
+  const { load } = storage();
+  const api = load("schedule");
+  const places = [{ id: "12_1" }, { id: "12_2" }, { id: "12_3" }];
+  const route = { orderedPlaceIds: places.map(place => place.id), segments: [
+    { originId: "12_1", destinationId: "12_2", status: "ready", durationSeconds: 1240 },
+    { originId: "12_2", destinationId: "12_3", status: "ready", durationSeconds: 3660 },
+  ] };
+  const result = api.buildDaySchedule(places, api.parseClock("09:30"), { "12_2": 90, "12_3": 30 }, route);
+  assert.equal(result.stops[0].departureMinutes, 630);
+  assert.equal(result.stops[1].arrivalMinutes, 651);
+  assert.equal(result.stops[2].arrivalMinutes, 802);
+  assert.equal(api.formatClock(result.finishMinutes), "13:52");
+  assert.equal(result.totalStayMinutes, 180);
+  assert.equal(result.totalDriveMinutes, 82);
+});
+
+test("이동 구간이 없거나 순서가 달라지면 이후 시각을 추측하지 않는다", () => {
+  const { load } = storage();
+  const api = load("schedule");
+  const places = [{ id: "12_1" }, { id: "12_2" }];
+  const route = { orderedPlaceIds: ["12_1", "12_2"], segments: [
+    { originId: "12_1", destinationId: "12_2", status: "unavailable", durationSeconds: null },
+  ] };
+  for (const currentRoute of [null, route, { ...route, orderedPlaceIds: ["12_2", "12_1"] }]) {
+    const result = api.buildDaySchedule(places, 600, {}, currentRoute);
+    assert.equal(result.stops[0].departureMinutes, 660);
+    assert.equal(result.stops[1].arrivalMinutes, null);
+    assert.equal(result.finishMinutes, null);
+    assert.equal(result.totalDriveMinutes, null);
+  }
+});
+
+test("한 장소 코스는 경로 없이 계산하고 자정을 넘기면 다음 날로 표시한다", () => {
+  const { load } = storage();
+  const api = load("schedule");
+  const result = api.buildDaySchedule([{ id: "12_1" }], api.parseClock("23:30"), {}, null);
+  assert.equal(result.totalDriveMinutes, 0);
+  assert.equal(api.formatClock(result.finishMinutes), "00:30 (+1일)");
+  assert.equal(api.parseClock("24:00"), null);
+});

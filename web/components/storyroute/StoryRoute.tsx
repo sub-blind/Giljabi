@@ -12,6 +12,7 @@ import { PlaceCard } from "./PlaceCard";
 import { PlaceDetailPanel, type DetailTab } from "./PlaceDetailPanel";
 import { JourneyPanel } from "./JourneyPanel";
 import { RoutePanel } from "./RoutePanel";
+import { DaySchedule } from "./DaySchedule";
 import styles from "./StoryRoute.module.css";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { SavedCoursesDialog } from "@/components/auth/SavedCoursesDialog";
@@ -431,7 +432,7 @@ export default function StoryRoute() {
       {auth.authenticated && <button className={`${styles.secondary} ${styles.headerIconButton}`} type="button" disabled={busy || accountBusy} onClick={() => setSavedCoursesOpen(true)} aria-label={`계정에 저장한 코스 보기${accountCourses.length ? `, ${accountCourses.length}개` : ""}`}><LibraryBig size={17} aria-hidden="true" /><span>내 코스 {accountCourses.length ? accountCourses.length : ""}</span></button>}
       <div className={styles.account}>
         {auth.authenticated ? <><span className={styles.accountName}><UserRound size={16} aria-hidden="true" />{auth.user?.nickname || "여행자"}</span>
-          <button className={styles.accountButton} type="button" onClick={() => void auth.logout().catch(() => setError("로그아웃을 완료하지 못했어요."))}><LogOut size={15} aria-hidden="true" />로그아웃</button></> :
+          <button className={styles.accountButton} type="button" aria-label="로그아웃" title="로그아웃" onClick={() => void auth.logout().catch(() => setError("로그아웃을 완료하지 못했어요."))}><LogOut size={18} aria-hidden="true" /><span>로그아웃</span></button></> :
           <button className={styles.loginButton} type="button" disabled={!auth.ready} onClick={() => auth.openLogin()}><LogIn size={16} aria-hidden="true" />카카오 로그인</button>}
       </div>
     </header>
@@ -501,6 +502,7 @@ export default function StoryRoute() {
               <CourseMap places={state.course.orderedPlaces} route={activeRoute} />
               <RoutePanel route={activeRoute} places={state.course.orderedPlaces} ready={!!connection?.routeReady} busy={busy} loading={state.busy === "route"} onLoad={() => void checkRoute()} />
             </div>
+            <DaySchedule places={state.course.orderedPlaces} route={activeRoute} />
           </section>}
           routeReady={!!connection?.routeReady} routeBusy={state.busy === "route"} busy={busy}
           onSaveCourse={save} onCheckRoute={() => void checkRoute()} onMove={move}
