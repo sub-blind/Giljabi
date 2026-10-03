@@ -876,3 +876,26 @@
   .dayScheduleResult { display:block; }
   .dayScheduleResult strong { display:block; margin-top:6px; }
 }
+
+.placeGallery { margin:20px 0 24px; }
+.placeGalleryHeading { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:4px 12px; margin-bottom:10px; }
+.placeGalleryHeading strong { color:var(--sr-ink); font-size:14px; }
+.placeGalleryHeading span { color:var(--sr-muted); font-size:11px; }
+.placeGalleryGrid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+.placeGalleryFew { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.placeGalleryFew:has(> :only-child) { grid-template-columns:minmax(0,1fr); }
+.placeGalleryItem { min-width:0; margin:0; border:1px solid var(--sr-line); border-radius:8px; overflow:hidden; background:var(--sr-paper); }
+.placeGalleryItem a { display:block; background:#eef3ef; }
+.placeGalleryItem img { display:block; width:100%; height:auto; aspect-ratio:4/3; object-fit:contain; }
+.placeGalleryFew:has(> :only-child) img { max-height:300px; }
+.placeGalleryItem figcaption { display:flex; flex-wrap:wrap; justify-content:space-between; gap:2px 8px; min-height:32px; padding:7px 9px; color:var(--sr-muted); font-size:11px; line-height:1.4; overflow-wrap:anywhere; }
+.placeGalleryItem figcaption span { color:var(--sr-teal); }
+.placeGalleryEmpty { display:flex; align-items:center; justify-content:center; gap:8px; min-height:120px; background:#eef3ef; color:var(--sr-muted); font-size:13px; }
+.placeGalleryMessage { margin:9px 0 0; color:var(--sr-muted); font-size:12px; line-height:1.6; }
+.placeGalleryMessage button { padding:2px 0; border:0; border-bottom:1px solid currentColor; background:transparent; color:var(--sr-teal); font:inherit; font-weight:700; }
+.placeGalleryMore { width:100%; min-height:44px; margin-top:10px; border:1px solid var(--sr-line); border-radius:8px; background:var(--sr-paper); color:var(--sr-teal); font:inherit; font-size:13px; font-weight:700; }
+@media (max-width:767px) {
+  .placeGalleryGrid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+  .placeGalleryFew:has(> :only-child) { grid-template-columns:minmax(0,1fr); }
+  .placeGalleryItem figcaption { min-height:38px; }
+}

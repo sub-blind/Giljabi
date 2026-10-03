@@ -24,6 +24,8 @@ export interface Place {
   source: "tourapi";
   retrievedAt: string;
 }
+export interface PlaceImage { imageUrl: string; thumbnailUrl: string; caption: string; copyrightCode: string | null }
+export interface PlaceImagesResult { placeId: string; images: PlaceImage[]; page: number; hasMore: boolean; retrievedAt: string }
 export interface Course {
   orderedPlaces: Place[];
   explanations: { placeId: string; text: string; mode: "ai" | "facts" }[];

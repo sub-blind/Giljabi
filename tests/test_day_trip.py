@@ -126,6 +126,49 @@ def test_place_detail_includes_only_sanitized_visit_information():
         assert "<" not in json.dumps(info, ensure_ascii=False)
 
 
+def test_place_images_show_only_verified_place_and_safe_image_urls():
+    async def with_images(operation, *, extra_params):
+        if operation == KorServiceOp.DETAIL_IMAGE:
+            assert extra_params["contentId"] == "1001"
+            assert extra_params["imageYN"] == "Y" and extra_params["numOfRows"] == 100
+            assert extra_params["pageNo"] == 1
+            return envelope([
+                {"contentid": "1001", "originimgurl": "http://tong.visitkorea.or.kr/a.jpg",
+                 "smallimageurl": "https://tong.visitkorea.or.kr/a-small.jpg", "imgname": "<b>바닷가</b>", "cpyrhtDivCd": "Type3"},
+                {"contentid": "1001", "originimgurl": "http://tong.visitkorea.or.kr/a.jpg"},
+                {"contentid": "1001", "originimgurl": "https://example.com/other.jpg"},
+                {"contentid": "9999", "originimgurl": "https://tong.visitkorea.or.kr/wrong.jpg"},
+            ])
+        return await provider(operation, extra_params=extra_params)
+
+    with client(DayTripService(offline_settings(), with_images)) as api:
+        result = api.get("/api/v1/day-trip/places/12_1001/images")
+        assert result.status_code == 200
+        assert result.json()["images"] == [{"imageUrl": "https://tong.visitkorea.or.kr/a.jpg",
+                                           "thumbnailUrl": "https://tong.visitkorea.or.kr/a-small.jpg",
+                                           "caption": "바닷가", "copyrightCode": "Type3"}]
+        assert api.get("/api/v1/day-trip/places/12_9999/images").status_code == 404
+        assert api.get("/api/v1/day-trip/places/photo_1001/images").status_code == 422
+        assert api.get("/api/v1/day-trip/places/12_1001/images?page=11").status_code == 422
+
+
+def test_place_images_page_forward_and_failure_do_not_block_basic_detail():
+    async def paged_images(operation, *, extra_params):
+        if operation == KorServiceOp.DETAIL_IMAGE:
+            if extra_params["pageNo"] == 2:
+                raise TourApiError("추가 사진 조회 실패", status_code=502)
+            return {"response": {"body": {"items": {"item": [
+                {"contentid": "1001", "originimgurl": "https://tong.visitkorea.or.kr/a.jpg"}]},
+                "totalCount": 101}}}
+        return await provider(operation, extra_params=extra_params)
+
+    with client(DayTripService(offline_settings(), paged_images)) as api:
+        first = api.get("/api/v1/day-trip/places/12_1001/images").json()
+        assert first["hasMore"] is True and first["page"] == 1
+        assert api.get("/api/v1/day-trip/places/12_1001/images?page=2").status_code == 502
+        assert api.get("/api/v1/day-trip/places/12_1001").status_code == 200
+
+
 @pytest.mark.parametrize("bad", [False, True])
 def test_batched_ai_evidence_is_called_once_and_checked_against_source(bad):
     calls = []

@@ -1,9 +1,9 @@
 """강원도 하루 여행 화면에서 사용하는 내부 API."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from app.services.day_trip import (
-    CourseRequest, CourseResponse, IntentRequest, IntentResponse, Place,
+    CourseRequest, CourseResponse, IntentRequest, IntentResponse, Place, PlaceImagesResponse,
     SearchRequest, SearchResponse, StatusResponse, ErrorResponse, get_day_trip,
 )
 from app.services.travel_content import (
@@ -53,6 +53,11 @@ async def get_related(place_id: str, service=Depends(get_travel_content)):
 @router.get("/places/{place_id}/accessibility", summary="동일 장소를 대조한 방문 편의정보", response_model=AccessResponse, response_description="무장애 여행정보의 제공 항목")
 async def get_accessibility(place_id: str, service=Depends(get_travel_content)):
     return await service.accessibility(place_id)
+
+
+@router.get("/places/{place_id}/images", summary="실제 장소의 추가 사진", response_model=PlaceImagesResponse, response_description="한국관광공사 장소별 이미지")
+async def get_place_images(place_id: str, page: int = Query(default=1, ge=1, le=10), service=Depends(get_day_trip)):
+    return await service.images(place_id, page)
 
 
 @router.post("/intent", summary="여행 문장 해석", response_model=IntentResponse, response_description="수정 가능한 여행 조건")

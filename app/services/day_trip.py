@@ -116,6 +116,21 @@ class Place(StrictModel):
     retrievedAt: str
 
 
+class PlaceImage(StrictModel):
+    imageUrl: str
+    thumbnailUrl: str
+    caption: str
+    copyrightCode: str | None
+
+
+class PlaceImagesResponse(StrictModel):
+    placeId: str
+    images: list[PlaceImage]
+    page: int
+    hasMore: bool
+    retrievedAt: str
+
+
 class Explanation(StrictModel):
     """확인된 사실 또는 소개 원문과 대조한 AI 단서."""
     placeId: str
@@ -387,6 +402,28 @@ class DayTripService:
                 # 소개정보 실패가 기본 장소 상세와 여행 진행을 막지 않는다.
                 place["visitInfo"] = visit_info(items[0], {}, place["category"])
         return place
+
+    async def images(self, place_id, page=1):
+        # 상세 사진은 실제 강원도 장소를 확인한 뒤, 상세 화면에서만 조회한다.
+        await self.detail(place_id, include_visit_info=False)
+        items, total = await self.call(KorServiceOp.DETAIL_IMAGE,
+                                       contentId=place_id.split("_")[1], imageYN="Y",
+                                       numOfRows=100, pageNo=page)
+        images = []
+        seen = set()
+        for item in items:
+            if str(item.get("contentid", "")) != place_id.split("_")[1]:
+                continue
+            original = image_url(item.get("originimgurl"))
+            if not original or original in seen:
+                continue
+            seen.add(original)
+            images.append({"imageUrl": original,
+                           "thumbnailUrl": image_url(item.get("smallimageurl")) or original,
+                           "caption": clean(item.get("imgname"), 120),
+                           "copyrightCode": clean(item.get("cpyrhtDivCd"), 20) or None})
+        return {"placeId": place_id, "images": images, "page": page,
+                "hasMore": page < 10 and total > page * 100, "retrievedAt": timestamp()}
 
     async def structured(self, name, model, instructions, data):
         if not self.settings.openai_api_key or not self.settings.openai_model:

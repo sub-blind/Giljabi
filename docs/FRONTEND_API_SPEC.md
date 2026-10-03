@@ -23,6 +23,7 @@
 | `web/components/storyroute/PhotoExplorer.tsx` | 사진 검색·조회 조건 유지·지역 검색 연결 |
 | `web/components/storyroute/PlaceContent.tsx` | 오디 원본·오디오·연관 관광지 영역 |
 | `web/components/storyroute/CourseMap.tsx` | 좌표 마커·방문 순서 점선·실제 자동차 도로 실선·지도 오류·크기 변경 처리 |
+| `web/components/storyroute/PlaceGallery.tsx` | 장소 상세 대표사진·추가 사진 격자와 원본 열기·이미지 실패 처리 |
 | `web/components/storyroute/JourneyPanel.tsx` | 여행 시작·다음 미방문 장소·방문 체크·메모 |
 | `web/components/storyroute/RoutePanel.tsx` | 자동차 이동 확인·구간별 시간·거리·출처 |
 | `web/components/storyroute/DaySchedule.tsx` | 첫 장소 도착 시각·체류 시간 입력과 하루 예상 시각 표시 |
@@ -116,6 +117,7 @@
 | POST /api/v1/day-trip/intent | 여행 문장 해석 | intent, mode, notices |
 | POST /api/v1/day-trip/places/search | 최종 조건으로 실제 검색 | places, appliedIntent, page, hasMore, notices, retrievedAt |
 | GET /api/v1/day-trip/places/{place_id} | 실제 상세 확인 | Place |
+| GET /api/v1/day-trip/places/{place_id}/images?page=1 | 실제 장소의 추가 사진 | placeId, images, page, hasMore, retrievedAt |
 | POST /api/v1/day-trip/course | 순서 있는 ID 재검증과 근거 | orderedPlaces, explanations, notices, retrievedAt |
 | POST /api/v1/day-trip/course/route | 장소 재검증과 자동차 구간 조회 | orderedPlaceIds, mode, source, segments, totalDistanceMeters, totalDurationSeconds, notices, retrievedAt |
 | GET /api/v1/day-trip/places/{place_id}/stories | 이름·위치를 대조한 오디 | placeId, stories, notices, retrievedAt |
@@ -141,6 +143,8 @@
 관심 유형은 attraction·culture·food만 허용한다. 키워드는 최대 세 개, 각각 30자 이내다. 주관적 선호와 미지원 조건은 각각 최대 세 개, 항목당 160자 이내다. `city`는 null이면 강원도 전체이며 강원도의 시군 이름만 허용한다. 예를 들어 춘천은 춘천시로 정규화한다. 서버는 잘못된 지역·기간·시군을 외부 호출 전에 거절한다. 시군을 지정하지 않으면 국문 조회에 `sigunguCode`를 보내지 않는다.
 
 장소는 id·name·category·city·address·imageUrl·latitude·longitude·overview·visitInfo·evidence·source·retrievedAt을 포함한다. `visitInfo`는 장소 유형에 맞는 문의·운영시간·휴무일·주차·요금·메뉴 중 관광 API가 제공한 값만 담는다. 사진과 좌표는 null일 수 있다. ID는 기존 저장소와 같은 `{contentTypeId}_{contentId}` 형식이다. 예시 ID는 실제 조회 결과를 의미하지 않는다.
+
+장소 상세를 열면 기본 정보와 별도로 `detailImage2`의 같은 `contentId` 사진을 조회한다. 한 페이지에 최대 100장을 받아 대표사진과 함께 격자로 표시하며, 100장을 넘는 경우 ‘사진 더 보기’로 다음 페이지를 가져온다(최대 10페이지). 이미지 URL은 확인한 한국관광공사 호스트만 허용하고, 중복 주소·다른 콘텐츠 ID·이미지 로드 실패는 제외한다. 제공된 사진 이름과 공공누리 유형이 있으면 사진 아래에 표시한다. 추가 조회가 실패해도 대표사진과 기본 장소 상세는 유지한다. 원본 사진은 별도 탭에서 열 수 있다.
 
 ### 최종 코스 검증
 
