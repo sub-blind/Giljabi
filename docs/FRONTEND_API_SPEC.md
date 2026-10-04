@@ -18,7 +18,8 @@
 | `web/components/storyroute/SearchWorkspace.tsx` | 지도·문장·사진 입력 탭 |
 | `web/components/storyroute/GangwonRegionMap.tsx` | 강원도 18개 시군 경계·마우스 미리보기·키보드와 모바일 지역 선택 |
 | `web/components/storyroute/IntentEditor.tsx` | AI가 해석한 조건 또는 수동 조건 편집 |
-| `web/components/storyroute/PlaceCard.tsx` | 실제 후보와 사진 누락 처리 |
+| `web/components/storyroute/PlaceCard.tsx` | 실제 후보·카드 사진 넘기기·사진 누락 처리 |
+| `web/components/storyroute/PlacePhotoViewer.tsx` | 사진 전체 화면 확대·이전/다음·원본 로딩 상태 |
 | `web/components/storyroute/PlaceDetailPanel.tsx` | 실제 상세 조회·닫기·초점 복귀 |
 | `web/components/storyroute/PhotoExplorer.tsx` | 사진 검색·조회 조건 유지·지역 검색 연결 |
 | `web/components/storyroute/PlaceContent.tsx` | 오디 원본·오디오·연관 관광지 영역 |
@@ -126,7 +127,7 @@
 
 이 계약은 외부 TourAPI의 원형 필드가 아니다. 내부 타입은 `web/lib/storyroute/types.ts`, 서버 모델은 `app/services/day_trip.py`에 있다. [실제 서버에서 추출한 계약](../contracts/day-trip.openapi.json)과 함께 관리한다.
 
-장소 검색 응답에는 대표 사진만 포함한다. 검색 결과 카드의 사진을 처음 넘길 때 `GET /places/{place_id}/images`를 호출하고, 마지막 사진에서 더 넘기면 `hasMore`에 따라 다음 페이지를 요청한다. 카드 사진을 불러오는 동안에도 장소 선택·상세 기능은 그대로 사용할 수 있다.
+장소 검색 응답에는 대표 사진만 포함한다. 검색 결과 카드의 사진을 처음 넘길 때 `GET /places/{place_id}/images`를 호출하고, 마지막 사진에서 더 넘기면 `hasMore`에 따라 다음 페이지를 요청한다. 추가 사진을 조회할 때 서버는 장소 재검증과 사진 API 요청을 함께 시작하되, 실제 강원도 장소로 검증되기 전에는 사진을 반환하지 않는다. 동일 장소·페이지의 성공 응답은 프런트에서 5분 동안 최대 60건 재사용한다. 카드는 제공된 작은 사진을 우선 사용하고 실패하면 원본을 시도한다. 사진을 누르면 전체 화면에서 원본을 열며, 원본이 준비될 때까지 작은 사진을 표시한다. 카드 사진을 불러오는 동안에도 장소 선택·상세 기능은 그대로 사용할 수 있다.
 
 ### 여행 조건
 

@@ -35,7 +35,17 @@ export const getRegions = (signal?: AbortSignal) => request<Regions>("/regions",
 export const parseIntent = (query: string, signal?: AbortSignal, aiConsent = false) => request<{ intent: Intent; mode: "ai" | "manual"; notices: string[] }>("/intent", { query, aiConsent, privacyVersion: aiConsent ? CURRENT_POLICY_VERSION : undefined }, signal);
 export const searchPlaces = (intent: Intent, page = 1, signal?: AbortSignal) => request<SearchResult>("/places/search", { intent, page }, signal);
 export const getPlace = (id: string, signal?: AbortSignal) => request<Place>("/places/" + encodeURIComponent(id), undefined, signal);
-export const getPlaceImages = (id: string, page = 1, signal?: AbortSignal) => request<PlaceImagesResult>("/places/" + encodeURIComponent(id) + "/images?page=" + page, undefined, signal);
+const placeImageCache = new Map<string, { result: PlaceImagesResult; expiresAt: number }>();
+export async function getPlaceImages(id: string, page = 1, signal?: AbortSignal): Promise<PlaceImagesResult> {
+  if (signal?.aborted) throw new Error("사진 요청이 취소됐어요.");
+  const key = `${id}:${page}`;
+  const cached = placeImageCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) return cached.result;
+  const result = await request<PlaceImagesResult>("/places/" + encodeURIComponent(id) + "/images?page=" + page, undefined, signal);
+  placeImageCache.set(key, { result, expiresAt: Date.now() + 5 * 60 * 1000 });
+  if (placeImageCache.size > 60) placeImageCache.delete(placeImageCache.keys().next().value!);
+  return result;
+}
 export const createCourse = (placeIds: string[], intent: Intent, signal?: AbortSignal, aiConsent = false) => request<Course>("/course", { placeIds, intent, aiConsent, privacyVersion: aiConsent ? CURRENT_POLICY_VERSION : undefined }, signal);
 export const getCourseRoute = (placeIds: string[], intent: Intent, signal?: AbortSignal) => request<CourseRoute>("/course/route", { placeIds, intent }, signal);
 export const searchPhotos = (city: string | null, keyword: string, page: number, signal?: AbortSignal) => request<PhotoResult>("/photos/search", { city, keyword, page }, signal);

@@ -152,6 +152,23 @@ def test_place_images_show_only_verified_place_and_safe_image_urls():
         assert api.get("/api/v1/day-trip/places/12_1001/images?page=11").status_code == 422
 
 
+def test_place_image_lookup_overlaps_location_verification():
+    image_started = asyncio.Event()
+
+    async def parallel_provider(operation, *, extra_params):
+        if operation == KorServiceOp.DETAIL_IMAGE:
+            image_started.set()
+            return envelope([{"contentid": "1001", "originimgurl": "https://tong.visitkorea.or.kr/a.jpg"}])
+        if operation == KorServiceOp.DETAIL_COMMON:
+            await asyncio.wait_for(image_started.wait(), timeout=0.5)
+        return await provider(operation, extra_params=extra_params)
+
+    with client(DayTripService(offline_settings(), parallel_provider)) as api:
+        result = api.get("/api/v1/day-trip/places/12_1001/images")
+        assert result.status_code == 200
+        assert len(result.json()["images"]) == 1
+
+
 def test_place_images_page_forward_and_failure_do_not_block_basic_detail():
     async def paged_images(operation, *, extra_params):
         if operation == KorServiceOp.DETAIL_IMAGE:

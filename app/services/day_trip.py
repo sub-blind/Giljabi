@@ -404,11 +404,19 @@ class DayTripService:
         return place
 
     async def images(self, place_id, page=1):
-        # 상세 사진은 실제 강원도 장소를 확인한 뒤, 상세 화면에서만 조회한다.
-        await self.detail(place_id, include_visit_info=False)
-        items, total = await self.call(KorServiceOp.DETAIL_IMAGE,
-                                       contentId=place_id.split("_")[1], imageYN="Y",
-                                       numOfRows=100, pageNo=page)
+        if not re.fullmatch(r"(12|14|39)_\d{1,15}", place_id):
+            raise TourApiError("올바른 장소를 선택해주세요.", status_code=422)
+        # 장소 재검증은 유지하되 독립적인 사진 조회를 겹쳐 첫 사진 대기를 줄인다.
+        image_task = asyncio.create_task(self.call(KorServiceOp.DETAIL_IMAGE,
+                                                  contentId=place_id.split("_")[1], imageYN="Y",
+                                                  numOfRows=100, pageNo=page))
+        try:
+            await self.detail(place_id, include_visit_info=False)
+            items, total = await image_task
+        except BaseException:
+            image_task.cancel()
+            await asyncio.gather(image_task, return_exceptions=True)
+            raise
         images = []
         seen = set()
         for item in items:

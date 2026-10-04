@@ -1,8 +1,22 @@
-import { ImageOff, Plus, Check, Info, ChevronLeft, ChevronRight } from "lucide-react";
+import { ImageOff, Plus, Check, Info, ChevronLeft, ChevronRight, Maximize2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { getPlaceImages } from "@/lib/api";
 import { categoryLabels, type Place, type PlaceImage } from "@/lib/storyroute/types";
+import { PlacePhotoViewer } from "./PlacePhotoViewer";
 import styles from "./StoryRoute.module.css";
+
+function CardImage({ image, placeName, index, onFailed }: { image: PlaceImage; placeName: string; index: number; onFailed: (url: string) => void }) {
+  const [useOriginal, setUseOriginal] = useState(false);
+  return <>
+    {/* 관광 API의 작은 이미지를 카드에 쓰고, 열리지 않으면 원본을 시도한다. */}
+    {/* eslint-disable-next-line @next/next/no-img-element */}
+    <img src={useOriginal ? image.imageUrl : image.thumbnailUrl} alt={`${placeName} 사진 ${index + 1}`} draggable={false}
+      loading={index === 0 ? "lazy" : "eager"} onError={() => {
+        if (!useOriginal && image.thumbnailUrl !== image.imageUrl) setUseOriginal(true);
+        else onFailed(image.imageUrl);
+      }} />
+  </>;
+}
 
 export function PlacePhoto({ place }: { place: Place }) {
   const [photos, setPhotos] = useState<PlaceImage[]>(place.imageUrl ? [{ imageUrl: place.imageUrl, thumbnailUrl: place.imageUrl, caption: "대표 사진", copyrightCode: null }] : []);
@@ -12,11 +26,14 @@ export function PlacePhoto({ place }: { place: Place }) {
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
   const controller = useRef<AbortController | null>(null);
   const requestInFlight = useRef(false);
   const pointerStartX = useRef<number | null>(null);
+  const skipOpen = useRef(false);
   const visible = photos.filter(photo => !failedUrls.includes(photo.imageUrl));
   const currentIndex = Math.min(index, Math.max(visible.length - 1, 0));
+  const active = visible[currentIndex];
 
   useEffect(() => () => controller.current?.abort(), []);
 
@@ -58,19 +75,21 @@ export function PlacePhoto({ place }: { place: Place }) {
   return <div className={`${styles.photo} ${styles.placeCarousel}`} role="group" tabIndex={0}
     aria-label={`${place.name} 사진: 좌우로 밀거나 화살표를 눌러 넘기세요`}
     onKeyDown={event => { if (event.key === "ArrowRight") { event.preventDefault(); void showNext(); } else if (event.key === "ArrowLeft") { event.preventDefault(); setIndex(current => Math.max(0, current - 1)); } }}
-    onPointerDown={event => { pointerStartX.current = event.clientX; }}
+    onPointerDown={event => { pointerStartX.current = event.clientX; skipOpen.current = false; }}
     onPointerUp={event => {
       if (pointerStartX.current === null) return;
       const distance = event.clientX - pointerStartX.current;
       pointerStartX.current = null;
+      if (Math.abs(distance) > 45) skipOpen.current = true;
       if (distance < -45) void showNext();
       else if (distance > 45) setIndex(current => Math.max(0, current - 1));
     }} onPointerCancel={() => { pointerStartX.current = null; }}>
-    {visible[currentIndex] ?
-      // 관광 API 이미지 URL은 실행 시점마다 달라질 수 있어 원본 URL로 표시한다.
-      // eslint-disable-next-line @next/next/no-img-element
-      <img key={visible[currentIndex].imageUrl} src={visible[currentIndex].imageUrl} alt={`${place.name} 사진 ${currentIndex + 1}`} draggable={false}
-        loading="lazy" onError={() => setFailedUrls(current => current.includes(visible[currentIndex].imageUrl) ? current : [...current, visible[currentIndex].imageUrl])} /> :
+    {active ? <button className={styles.placeCarouselOpen} type="button" aria-label={`${place.name} 사진 ${currentIndex + 1} 크게 보기`}
+      onClick={() => { if (skipOpen.current) { skipOpen.current = false; return; } setViewerOpen(true); }}>
+      <CardImage key={active.imageUrl} image={active} placeName={place.name} index={currentIndex}
+        onFailed={url => setFailedUrls(current => current.includes(url) ? current : [...current, url])} />
+      <span className={styles.placeCarouselExpand}><Maximize2 size={13} aria-hidden="true" /> 크게 보기</span>
+    </button> :
       <div className={styles.photoFallback}><ImageOff size={22} aria-hidden="true" /><span>{loading ? "사진 불러오는 중…" : nextPage === 1 ? "대표 사진이 없어요" : "제공된 사진이 없어요"}</span></div>}
     {visible.length > 0 && <span className={styles.placeCarouselCredit}>ⓒ한국관광공사</span>}
     {currentIndex > 0 && <button className={`${styles.placeCarouselArrow} ${styles.placeCarouselPrevious}`} type="button"
@@ -80,6 +99,9 @@ export function PlacePhoto({ place }: { place: Place }) {
     {(visible.length > 0 || hasMore || loading || error) && <span className={styles.placeCarouselPosition} role="status">
       {loading ? "사진 불러오는 중…" : error ? "사진 조회 실패 · 다시 눌러주세요" : nextPage === 1 ? visible.length ? "사진 더 보기" : "사진 확인" : `${currentIndex + 1} / ${visible.length}${hasMore ? "+" : ""}`}
     </span>}
+    {viewerOpen && active && <PlacePhotoViewer placeName={place.name} image={active} index={currentIndex} count={visible.length}
+      hasMore={hasMore} loading={loading} error={error} onPrevious={() => setIndex(current => Math.max(0, current - 1))}
+      onNext={() => { void showNext(); }} onClose={() => setViewerOpen(false)} />}
   </div>;
 }
 
