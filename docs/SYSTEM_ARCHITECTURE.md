@@ -1,6 +1,6 @@
 # 스토리루트 시스템 구조
 
-이 문서는 현재 배포 코드의 요청 경로와 저장 경계를 설명한다. 기능 아이디어가 아니라 `web/`, `app/`과 2026년 9월 21일 확인한 Vercel·Render 운영 배포를 기준으로 한다.
+이 문서는 현재 배포 코드의 요청 경로와 저장 경계를 설명한다. 기능 아이디어가 아니라 `web/`, `app/`과 2026년 10월 4일까지 확인한 Vercel·Render 운영 배포를 기준으로 한다.
 
 ## 전체 구성
 
@@ -12,7 +12,7 @@
 
 | 역할 | 주소 | 확인 기준 |
 |---|---|---|
-| 사용자 화면 | <https://storyroute.vercel.app> | 2026-09-21 배포 화면 응답 |
+| 사용자 화면 | <https://storyroute.vercel.app> | 2026-10-04 장소 사진 확대 화면 확인 |
 | FastAPI | <https://storyroute-api.onrender.com> | `/healthz`, `/api/v1/day-trip/status` 응답 |
 
 운영 주소는 배포 설정에 따라 바뀔 수 있다. 프런트의 실제 백엔드 대상은 Vercel 환경변수 `API_BASE_URL`과 `web/next.config.ts`의 rewrite로 결정한다.

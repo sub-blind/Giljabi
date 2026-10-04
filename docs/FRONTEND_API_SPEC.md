@@ -1,6 +1,6 @@
 # 프런트·API 구현 설계
 
-2026년 9월 20일 · Tourism 저장소의 실제 구조 기준
+2026년 10월 4일 · Tourism 저장소의 실제 구조 기준
 
 현재 구현은 강원특별자치도 전체 검색과 18개 시군 지도 선택, 관광사진 탐색·오디 이야기·기준월 연관 자료·방문 편의정보·장소 유형별 운영정보를 지원한다. 카카오 로그인 사용자는 계정별 코스를 PostgreSQL에 저장할 수 있다. 데이터 판단은 [강원도 API 선정안](API_SELECTION_GANGWON.md)을 따른다.
 
@@ -13,7 +13,6 @@
 | 파일·폴더 | 역할 |
 |---|---|
 | `web/app/page.tsx` | 서비스 시작 화면 |
-| `web/app/home/page.tsx` | 같은 여행 화면을 제공하는 기존 주소 |
 | `web/components/storyroute/StoryRoute.tsx` | 세 단계 화면·공통 상태·선택·교체·순서 변경 |
 | `web/components/storyroute/SearchWorkspace.tsx` | 지도·문장·사진 입력 탭 |
 | `web/components/storyroute/GangwonRegionMap.tsx` | 강원도 18개 시군 경계·마우스 미리보기·키보드와 모바일 지역 선택 |
