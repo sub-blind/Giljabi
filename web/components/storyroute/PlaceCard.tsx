@@ -6,9 +6,16 @@ import { PlacePhotoViewer } from "./PlacePhotoViewer";
 import styles from "./StoryRoute.module.css";
 
 function CardImage({ image, placeName, index, onFailed }: { image: PlaceImage; placeName: string; index: number; onFailed: (url: string) => void }) {
-  const [useOriginal, setUseOriginal] = useState(false);
+  const [useOriginal, setUseOriginal] = useState(image.thumbnailUrl === image.imageUrl);
+  useEffect(() => {
+    if (image.thumbnailUrl === image.imageUrl) return;
+    // 넘겨 본 카드의 작은 사진을 먼저 보여주되, 원본이 준비되면 선명한 사진으로 교체한다.
+    const original = new window.Image();
+    original.onload = () => setUseOriginal(true);
+    original.src = image.imageUrl;
+    return () => { original.onload = null; };
+  }, [image.imageUrl, image.thumbnailUrl]);
   return <>
-    {/* 관광 API의 작은 이미지를 카드에 쓰고, 열리지 않으면 원본을 시도한다. */}
     {/* eslint-disable-next-line @next/next/no-img-element */}
     <img src={useOriginal ? image.imageUrl : image.thumbnailUrl} alt={`${placeName} 사진 ${index + 1}`} draggable={false}
       loading={index === 0 ? "lazy" : "eager"} onError={() => {
