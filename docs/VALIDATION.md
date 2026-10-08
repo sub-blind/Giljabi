@@ -356,3 +356,4 @@ npm run build
 
 - 사용자가 새로 만든 `storyroute.help@gmail.com`을 `/privacy`의 문의 이메일과 `mailto:` 링크에 반영했다. 주소는 공개 정보이므로 코드에서 관리하며 Vercel 환경변수 설정에 의존하지 않는다. 정책 시행일과 구분해 문의처 갱신일을 표시했다. 메일함의 실제 수신·답장은 아직 확인하지 않았다.
 - 로컬 운영 빌드가 통과했고 생성된 `/privacy` HTML에서 문의 주소를 확인했다. 프런트 타입 검사·12개 테스트·전체 ESLint(기존 `.next-*` 빌드 산출물 제외), 백엔드 104개 통과·17개 제외를 확인했다.
+- 10월 9일 `233658a`를 dev·main에 푸시한 뒤 공개 `https://storyroute.vercel.app/privacy`가 HTTP 200을 반환하고 `storyroute.help@gmail.com`과 `mailto:` 링크를 표시하는 것을 확인했다. 이전 ‘문의용 이메일은 준비 중’ 안내는 표시되지 않았다. 메일 송수신 자체를 검증한 것은 아니다.
