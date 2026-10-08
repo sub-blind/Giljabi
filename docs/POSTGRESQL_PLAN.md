@@ -79,40 +79,13 @@ docker compose up -d --wait
 
 17:03 Docker 컨테이너 전환 후 동일한 서버 환경 설정으로 한국어 임시 데이터 저장·수정·조회·정리와 위 연결 확인 API의 HTTP 200을 다시 확인했다. 백엔드는 재시작하지 않았으며 이전 연결 풀에서 새 PostgreSQL로 연결이 복구됐다.
 
-## 운영 구성과 초기 검토 이력
+## 운영 구성
 
 현재 프런트는 Vercel, FastAPI는 Render, 운영 PostgreSQL은 Neon에 배포했다. PostgreSQL은 백엔드의 `DATABASE_URL`로만 연결하며 연결 주소와 비밀번호를 소스·문서에 기록하지 않는다. 운영 DB를 바꾸더라도 동일한 Alembic 마이그레이션과 `/api/v1/health/database` 확인 절차를 사용한다. Neon의 실제 복구본 보관기간과 별도 백업 여부는 아직 확인하지 못했으며 [개인정보 운영 점검](PRIVACY_OPERATIONS.md)에 남겼다. 외부 AI·길찾기 등의 API 사용량은 호스팅과 별도로 관리한다.
 
-아래 Supabase 내용은 9월 18일 무료 운영 구성을 검토할 때 남긴 후보 조사다. 현재 운영 DB 공급자를 뜻하지 않는다.
+## 데이터 구조
 
-9월 18일 [Supabase 공식 요금표](https://supabase.com/pricing) 확인 기준으로 Free 요금제는 PostgreSQL DB 500MB, 파일 저장소 1GB, 송신량 5GB를 포함한다. 리뷰 사진의 파일 저장소는 해당 기능을 구현할 때 사용한다. 무료 프로젝트는 한 주 동안 활동이 부족하면 일시 중지될 수 있고 자동 백업은 제공되지 않는다. 이용량을 확인하고 필요한 데이터는 별도로 내보낸다. [프로젝트 일시 중지 안내](https://supabase.com/docs/guides/platform/free-project-pausing)
-
-FastAPI처럼 계속 실행되는 서버는 일반 PostgreSQL 연결을 사용한다. 배포 환경의 IPv6 지원 여부를 확인하고 IPv4 연결이 필요하면 Supabase의 Session pooler 주소를 사용한다. 실제 주소는 프로젝트의 Connect 화면에서 확인하며 TLS를 사용한다. [공식 PostgreSQL 연결 안내](https://supabase.com/docs/guides/database/connecting-to-postgres)
-
-## 먼저 저장할 데이터
-
-아래 기본 네 테이블과 로그인 유지용 `auth_sessions`를 SQLAlchemy 모델·Alembic 초기 변경으로 생성했다. 공개 리뷰와 사진 업로드는 이후 작업으로 남긴다.
-
-필드·자료형·외래키·삭제 정책·로그인 세션을 포함한 상세 구조는 [PostgreSQL 테이블 설계](DATABASE_SCHEMA.md)를 따른다. 기본 사용자 데이터 네 테이블에 로그인 유지용 `auth_sessions`를 더한 총 다섯 테이블 설계다.
-
-| 테이블 | 용도 | 주요 관계·조건 |
-|---|---|---|
-| `users` | 로그인한 사용자의 내부 ID와 외부 로그인 식별자 | 로그인 제공자·외부 사용자 ID 조합은 중복 불가 |
-| `auth_sessions` | 로그인 유지용 토큰 해시·만료·폐기 시각 | 사용자 ID 외래키, 원본 토큰 저장 안 함 |
-| `courses` | 사용자의 코스 이름·검색 조건·여행 시작 시각 | 사용자 ID를 외래키로 연결 |
-| `course_places` | 코스에 담은 관광 장소 ID·유형·방문 순서 | 코스 내 같은 장소와 같은 순서 중복 방지, 최대 세 장소는 서버에서 검증 |
-| `place_records` | 코스 장소별 방문 체크·개인 메모·수정 시각 | 코스 장소당 한 기록, 메모 최대 500자 |
-
-```mermaid
-flowchart LR
-    User["users · 사용자"] -->|"1 : N"| Course["courses · 저장한 코스"]
-    Course -->|"1 : N · 최대 3곳"| Place["course_places · 방문 순서"]
-    Place -->|"1 : 0 또는 1"| Record["place_records · 개인 방문 기록"]
-```
-
-관광 장소는 제공 서비스의 ID와 콘텐츠 유형으로 식별한다. 관광 소개·이미지 원본을 DB에 대량 복제하지 않고 코스를 다시 열 때 실제 관광정보를 조회한다. 방문 순서를 바꿀 때 코스 장소의 ID를 유지해 기존 기록과 연결한다.
-
-사진 리뷰를 추가할 때는 개인 메모와 공개 리뷰를 별도로 저장한다. 사진 파일은 파일 저장소에 두고 DB에는 저장소 경로와 메타데이터를 저장한다. 개인 메모를 자동으로 공개 리뷰로 전환하지 않는다.
+현재 다섯 테이블의 관계는 [데이터 모델과 ERD](DATA_MODEL.md), 필드·제약·삭제 규칙은 [데이터베이스 상세 구조](DATABASE_SCHEMA.md)를 따른다. 계정 코스에는 관광 장소 ID·유형·순서·검색 조건을 저장하며 관광 소개나 이미지 원본을 대량 복제하지 않는다. `place_records`는 DB에 테이블만 있고 현재 방문 완료·메모 화면에서는 사용하지 않는다.
 
 ## 구현 순서와 완료 기준
 
