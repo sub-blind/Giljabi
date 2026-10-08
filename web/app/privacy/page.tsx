@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { SiteFooter } from "@/components/common/SiteFooter";
-import { privacyContactEmail } from "@/lib/privacy-contact";
+import { PRIVACY_CONTACT_EMAIL } from "@/lib/privacy-contact";
 import styles from "../legal.module.css";
 
 export const metadata: Metadata = {
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default function PrivacyPage() {
-  const email = privacyContactEmail();
+  const email = PRIVACY_CONTACT_EMAIL;
   return <div className={styles.page}>
     <header className={styles.header}><Link className={styles.brand} href="/">StoryRoute.</Link><Link className={styles.back} href="/">여행 화면으로 돌아가기</Link></header>
     <main className={styles.main}>
@@ -19,7 +19,7 @@ export default function PrivacyPage() {
         <p className={styles.eyebrow}>서비스 정책</p>
         <h1>개인정보처리방침</h1>
         <p className={styles.lead}>StoryRoute는 로그인과 계정별 코스 저장에 필요한 최소한의 정보만 처리합니다. 로그인하지 않아도 여행 검색과 브라우저 저장 기능을 이용할 수 있습니다.</p>
-        <span className={styles.effective}>시행일 2026년 9월 30일</span>
+        <span className={styles.effective}>시행일 2026년 9월 30일 · 문의처 갱신 2026년 10월 8일</span>
       </section>
       <nav className={styles.toc} aria-label="개인정보처리방침 목차">
         <a href="#purpose">처리 목적과 항목</a><a href="#ai">선택 AI 기능</a><a href="#retention">보유·삭제</a><a href="#storage">브라우저 저장</a><a href="#infrastructure">국외 처리</a><a href="#rights">이용자 권리</a>
@@ -84,10 +84,10 @@ export default function PrivacyPage() {
       <section className={styles.section} id="rights">
         <h2>6. 이용자의 권리와 행사 방법</h2>
         <p>로그인한 이용자는 계정과 계정에 저장한 모든 코스를 직접 삭제할 수 있습니다. 현재 기기에 저장한 코스·방문·메모는 별도로 삭제할 수 있고, 회원 탈퇴 시에도 함께 지워집니다. 서비스 화면에서 삭제한 정보는 복구할 수 없습니다. 외부 운영 로그·복구본은 위 보관 조건이 적용됩니다.</p>
-        <div className={styles.actions}><Link className={styles.primary} href="/account">계정·개인정보 관리</Link>{email && <a className={styles.secondary} href={`mailto:${email}`}>비공개 개인정보 문의</a>}</div>
+        <div className={styles.actions}><Link className={styles.primary} href="/account">계정·개인정보 관리</Link><a className={styles.secondary} href={`mailto:${email}`}>비공개 개인정보 문의</a></div>
         <h3>개인정보 보호 담당</h3>
         <p>담당: StoryRoute 운영자. 열람·정정·삭제·처리정지 요청을 접수합니다.</p>
-        {email ? <p>문의 이메일: <a className={styles.link} href={`mailto:${email}`}>{email}</a><br />비밀번호·인증 토큰·신분증을 첨부하지 마세요.</p> : <p className={styles.notice}>비공개 개인정보 문의용 이메일은 준비 중입니다. 주소를 마련하면 이 페이지에 공개합니다. 공개 GitHub 이슈에는 개인정보나 계정 삭제 요청을 올리지 마세요. 계정·기기 기록의 직접 삭제 기능은 이용할 수 있습니다.</p>}
+        <p>문의 이메일: <a className={styles.link} href={`mailto:${email}`}>{email}</a><br />비밀번호·인증 토큰·신분증을 첨부하지 마세요.</p>
         <p>개인정보 침해 상담은 개인정보침해 신고센터(국번 없이 118), 분쟁 조정은 개인정보분쟁조정위원회(1833-6972)를 이용할 수 있습니다.</p>
       </section>
       <section className={styles.section}>
