@@ -95,87 +95,7 @@ flowchart TD
 
 ## 프로그램 구조
 
-아래 그림은 현재 프런트가 사용하는 하루 여행 API 경로다. 관광 API 인증과 AI 호출은 FastAPI에서 처리한다. 사진·음성 파일, 지도 타일, 외부 길찾기는 브라우저가 공개 주소로 접근한다.
-
-```mermaid
-flowchart TB
-    subgraph Browser["사용자 브라우저"]
-        UI["React 화면·useReducer 상태<br/>검색 → 장소 담기 → 코스·여행"]
-        API["web/lib/api.ts<br/>내부 API 요청·시간 제한·취소"]
-        Store["localStorage<br/>비회원 최근 코스 1개·방문 체크와 메모"]
-        Map["Leaflet 지도"]
-        UI --> API
-        UI <--> Store
-        UI --> Map
-    end
-    API --> Next["Next.js 서버<br/>여행·인증·내 코스 API 경로 연결"]
-    Next --> Router["FastAPI 라우터<br/>입력 검증·요청 제한·오류 응답"]
-    subgraph Services["백엔드 서비스"]
-        Trip["DayTripService<br/>지역 코드·실제 후보·코스 재검증·AI 근거 대조"]
-        Content["TravelContentService<br/>촬영지 확인·이야기·연관·편의정보 대조"]
-        RouteService["CourseRouteService<br/>자동차 구간·부분 실패·120초 캐시"]
-        Client["TourAPI 클라이언트<br/>서버 인증·시간 제한·동시 조회 및 호출량 제한"]
-        Trip --> Client
-        Content --> Client
-        Content -. "기본 장소 확인" .-> Trip
-        RouteService -. "장소 ID 재검증" .-> Trip
-    end
-    Router --> Trip
-    Router --> Content
-    Router --> RouteService
-    Router --> Auth["카카오 인증·세션 API"]
-    Router --> AccountCourse["계정별 코스 API"]
-    Auth --> DB["PostgreSQL<br/>회원·세션"]
-    AccountCourse --> DB
-    Client --> Kor["한국관광공사 국문 관광정보"]
-    Client --> Extra["관광사진·오디·연관 관광지·무장애 여행정보"]
-    Trip -. "선택적 연결" .-> LLM["OpenAI Responses API<br/>조건 해석·소개 원문의 근거 선택"]
-    RouteService --> Mobility["카카오모빌리티<br/>자동차 예상 시간·거리·도로 경로"]
-    Map --> Tiles["OpenStreetMap 공개 타일"]
-    UI --> Media["공개 관광사진·오디 음성 파일"]
-    UI --> Directions["외부 카카오맵 길찾기"]
-```
-
-화면의 서버 응답과 사용자의 선택 상태는 분리한다. 여행 요청은 잠금·요청 식별자·취소 신호로 중복 실행과 오래된 응답의 반영을 막는다. 사진과 상세 콘텐츠도 화면을 닫을 때 요청을 취소한다. 추가 콘텐츠 실패가 기본 장소 소개나 코스 이용을 막지 않도록 각 영역에서 처리한다.
-
-비회원 코스는 `storyroute.day-trip.v2`에 가장 최근 한 개를 저장한다. 로그인은 여행 시작의 필수 조건이 아니며, 카카오 로그인 사용자는 장소 ID·순서·검색 조건을 PostgreSQL의 계정별 코스 목록에 추가로 저장하고 다른 기기에서도 다시 열 수 있다. 코스를 다시 열 때는 저장 당시 내용을 그대로 믿지 않고 관광 API로 현재 장소 정보를 재검증한다. 방문 완료·메모는 `storyroute.journey.v1:` 뒤에 정렬한 장소 ID 집합을 붙여 브라우저에 별도로 저장한다. 순서를 바꾸면 같은 기록을 유지하고, 여행 중 장소를 교체하면 남아 있는 장소의 완료·메모만 새 코스로 옮긴다. 푸터의 계정·개인정보 관리에서 브라우저 기록을 지우거나 회원·세션·계정 코스를 함께 삭제할 수 있다.
-
-### 코스와 이동정보를 확인하는 순서
-
-```mermaid
-sequenceDiagram
-    actor User as 사용자
-    participant Web as React·Next.js
-    participant Server as FastAPI
-    participant Tour as 국문 관광정보
-    participant AI as 선택적 LLM
-    participant Car as 카카오모빌리티
-    User->>Web: 선택한 장소로 코스 만들기
-    Web->>Server: POST /course: placeIds·intent
-    Server->>Server: 1~3개 ID·중복·조건 검증
-    Server->>Tour: 지역 코드·선택 장소 상세 재조회
-    Tour-->>Server: 실제 장소·주소·분류·소개 원문
-    Server->>Server: 강원도·시군·선택 유형 대조
-    opt AI 설정과 소개 원문이 있는 경우
-        Server->>AI: 소개 원문에서 선호와 관련된 구절 선택
-        AI-->>Server: 정해진 JSON 형식의 근거 후보
-        Server->>Server: ID·길이·중복·원문 포함 여부 검사
-    end
-    Note over Server,Web: AI가 없거나 실패해도 확인된 사실로 코스 제공<br/>장소 검증 실패는 오류로 안내하고 기존 화면 유지
-    Server-->>Web: 재검증한 장소·근거·안내
-    Web-->>User: 편집 가능한 코스
-    opt 사용자가 자동차 이동 확인을 누른 경우
-        Web->>Server: POST /course/route: 현재 순서의 ID·조건
-        Server->>Tour: 장소 ID 재검증
-        Tour-->>Server: 확인한 장소·좌표
-        Server->>Car: 같은 좌표 구간의 성공 캐시가 없으면 조회
-        Car-->>Server: 자동차 시간·거리·도로 좌표 또는 구간 실패
-        Server-->>Web: 구간 상태·경로·확인된 경우만 전체 합계
-        Web-->>User: 실제 도로 실선·예상 이동 또는 실패 안내
-    end
-```
-
-순서를 바꾸면 이전 자동차 경로를 숨기고 다시 확인하게 한다. 실패한 구간은 가짜 시간이나 직선 도로로 채우지 않는다. 지도 점선은 방문 순서이며, 예상 이동에는 첫 장소까지의 이동·체류·주차 시간이 포함되지 않는다.
+요청 경로, 저장 경계와 장애 처리 흐름은 [시스템 구조](docs/SYSTEM_ARCHITECTURE.md)를 참고한다.
 
 ## 실행 준비
 
@@ -276,52 +196,6 @@ npm run dev
 | 공개 운영 주소 | Vercel·Render 상태 응답 확인 | `storyroute.vercel.app` 화면과 `storyroute-api.onrender.com` API, 첫 유휴 요청 지연 안내·취소 제공. 10월 9일 공개 개인정보처리방침의 문의 이메일 표시 확인 |
 
 후보 카드 표시·선택·순서 변경마다 LLM을 호출하지 않는다. 관광 연결이 없으면 실제 장소를 제공한 것처럼 표시하지 않는다. AI가 없거나 실패해도 직접 조건 선택과 실제 관광 검색을 사용할 수 있다.
-
-## 사용자 관점의 보완 순서
-
-아래 표는 사용자 문제와 처리 결과를 함께 기록한다. 최신 배포·자동 검증 상태는 [검증 기록](docs/VALIDATION.md), 이후 범위는 [프로젝트 계획](docs/PROJECT_PLAN.md)을 따른다.
-
-| 우선순위 | 발견한 문제 | 적용한 보완 또는 남은 확인 | 확인 기준 |
-|---|---|---|---|
-| 1 | ‘이야기 듣기’를 눌렀는데 자료가 없어 기능 오류처럼 느껴짐 | 조회 전에는 ‘이야기 확인’처럼 표현하고, 조회 후 자료 수·없음·실패를 구분. 같은 상세에서 탭을 돌아와도 확인한 결과 유지 | 자료 있는 장소·없는 장소·조회 실패에서 표시가 서로 다르고, 탭 복귀만으로 API를 재호출하지 않음 |
-| 2 | 비회원은 최근 코스 하나만 브라우저에 보관되며 다른 기기에서 이어볼 수 없음 | 현재 저장 범위를 코스 화면에 안내하고 사용자가 원할 때 카카오 로그인으로 계정 저장 | 로그인 창 없이 여행 시작, 로그인·비로그인 저장과 재접속 결과를 각각 확인 |
-| 3 | 식당을 골라도 전화·이용시간 등 방문 판단에 필요한 정보가 부족함 | `detailCommon2`와 `detailIntro2`의 장소 유형별 정보를 상세 화면의 ‘방문 전 확인’에 연결함 | 영월 ‘동강의아침’에서 문의·영업시간·휴무일·주차·대표메뉴·취급메뉴 확인. 누락값은 상태를 추정하지 않고 안내만 표시 |
-| 4 | 고정 예시 외의 문장·조건 편집과 외부 주소의 AI 흐름은 아직 미확인 | 부정문·모호한 요청 추가 평가, 화면에서 조건 수정 후 실제 검색, 공개 운영에서 실패 대응 확인 | 고정 예시 10개 결과와 추가 검증을 구분하고 AI 실패 중에도 수동 검색 완주 |
-
-다음 단계의 구조 개선은 필요가 확인된 범위부터 한다. 상세 콘텐츠 결과를 상위 상세 패널에서 관리해 조회 상태를 유지하고, 검색 조건 편집·요청 진행·코스 편집의 상태 변경을 명확하게 분리한다. 공개 리뷰·사진 업로드는 현재 범위에서 제외한다. 공개 범위·이미지 저장소·신고와 삭제 정책 없이 추가하면 신뢰와 운영 부담이 커지기 때문이다. 운영 DB와 계정·코스·기록의 관계는 [PostgreSQL 연결 안내](docs/POSTGRESQL_PLAN.md)를 따른다.
-
-## 코드 위치
-
-| 위치 | 역할 |
-|---|---|
-| `web/components/storyroute` | 세 단계 화면, 강원도 시군 선택 지도, 조건 편집, 장소 카드·상세, 코스 지도 |
-| `web/data/gangwonMap.ts` | 강원도 18개 시군 SVG 경계·이름 위치 데이터 |
-| `web/components/auth`·`web/lib/auth.ts` | 카카오 로그인 화면·현재 회원·로그아웃·회원 탈퇴 |
-| `web/app/privacy`·`web/app/terms`·`web/app/account` | 개인정보처리방침·이용약관·계정 및 기기 기록 삭제 |
-| `web/lib/accountCourses.ts` | 계정별 코스 저장·목록·삭제 요청 |
-| `web/lib/api.ts` | 내부 API 요청·시간 제한·오류 처리 |
-| `web/lib/storyroute` | 공통 타입·코스 및 여행 기록 저장·외부 길찾기 링크 |
-| `app/services/day_trip.py` | 관광 데이터 정리·지역 검증·AI 근거 확인 |
-| `app/services/travel_content.py` | 관광사진·오디·연관·무장애 자료와 실제 장소 대조 |
-| `app/services/course_route.py` | 자동차 구간 조회·성공 캐시·부분 실패 처리 |
-| `app/tour_api/related_region_codes.json` | 공식 코드표의 연관 서비스 강원 시군 코드 |
-| `app/api/v1/endpoints/day_trip.py` | 하루 여행 API |
-| `app/api/v1/endpoints/account_courses.py` | 로그인 회원의 코스 저장·목록·재열기·삭제 API |
-| `app/tour_api/client.py` | 서버에서 관광 API 호출·조회량 제한 |
-| `app/database.py` | PostgreSQL 연결 풀·트랜잭션·연결 확인·오류 숨김 |
-| `compose.yaml` | 개발용 PostgreSQL 17·로컬 포트·영속 볼륨·상태 확인 |
-| `tools/check_local_db.py` | 실제 DB 연결·임시 한국어 데이터 저장·수정·조회 확인 |
-| `app/models.py`·`migrations`·`alembic.ini` | 계정·코스·기록 모델과 DB 변경 이력 |
-| `tools/check_db_schema.py` | 실제 DB의 제약조건·순서 변경·기록 유지·삭제 검증, 확인용 데이터 롤백 |
-| `tools/local_postgres.ps1` | 현재 PC의 프로젝트 전용 PostgreSQL 실행·중지·상태 |
-| `tests/test_database.py` | DB 미설정·잘못된 설정·연결 실패·정상 상태·종료 시 정리 |
-| `tests/test_day_trip.py` | 외부 키가 필요 없는 흐름·실패 검증 |
-| `tests/test_travel_content.py` | 강원도 범위·추가 콘텐츠·장소 연결 검증 |
-| `tests/test_course_route.py` | 자동차 응답·좌표 누락·부분 실패·캐시·조회량 제한 검증 |
-| `tests/test_account_courses.py` | 계정 코스 저장·순서·소유권·삭제 검증 |
-| `web/tests/storage.test.cjs` | 코스·방문 기록 검증과 외부 길찾기 링크 확인 |
-
-현재 화면은 하루 여행·카카오 인증·계정 코스 API를 사용한다. 초기 개발용 관광 원형 API와 중복 계약 파일은 실행 경로에서 제거했으며, 현재 계약은 `contracts/day-trip.openapi.json`에 둔다.
 
 ## 검증
 
