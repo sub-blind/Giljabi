@@ -2,12 +2,12 @@ erDiagram
     USERS ||--o{ AUTH_SESSIONS : "로그인 세션"
     USERS ||--o{ COURSES : "코스 소유"
     COURSES ||--|{ COURSE_PLACES : "장소 1~3개"
-    COURSE_PLACES ||--o| PLACE_RECORDS : "방문 기록"
+    COURSE_PLACES ||--o| PLACE_RECORDS : "예약된 방문 기록"
 
     USERS {
         uuid id PK
         varchar provider
-        varchar provider_user_id UK
+        varchar provider_user_id "provider와 함께 UNIQUE"
         varchar nickname "NULL 허용"
         varchar policy_version "NULL 허용"
         timestamptz policy_confirmed_at "NULL 허용"

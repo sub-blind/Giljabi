@@ -18,24 +18,17 @@
 
 ![실제 관광지를 선택해 하루 코스를 만들고 자동차 이동 경로를 확인하는 화면](docs/assets/storyroute-course-route.gif)
 
-## 최신 문서
+## 문서 안내
 
-- [문서 전체 안내](docs/README.md)
-- [시스템 구조](docs/SYSTEM_ARCHITECTURE.md)
-- [데이터 모델과 ERD](docs/DATA_MODEL.md)
-- [개정 기획서](docs/PROJECT_PLAN.md)
-- [화면 디자인 기준](docs/DESIGN.md)
-- [강원도 API 선정안](docs/API_SELECTION_GANGWON.md)
-- [프런트·API 설계서](docs/FRONTEND_API_SPEC.md)
-- [최소 사용자 시나리오](docs/MVP_USER_SCENARIO.md)
-- [검증 기록](docs/VALIDATION.md)
-- [실제 AI 연결·평가 안내](docs/AI_SETUP_AND_CHECK.md)
-- [PostgreSQL 연결·운영 안내](docs/POSTGRESQL_PLAN.md)
-- [카카오 인증·계정 API](docs/AUTH_API_SPEC.md)
-- [개인정보 운영 점검](docs/PRIVACY_OPERATIONS.md)
-- [하루 여행 API 계약](contracts/day-trip.openapi.json)
+| 확인할 내용 | 문서 |
+|---|---|
+| 서비스 범위와 다음 개선 | [프로젝트 계획](docs/PROJECT_PLAN.md) · [사용자 시나리오](docs/MVP_USER_SCENARIO.md) |
+| 구조와 저장 경계 | [시스템 구조](docs/SYSTEM_ARCHITECTURE.md) · [DB 구조·ERD](docs/DATABASE_SCHEMA.md) |
+| API 구현과 계약 | [프런트·여행 API](docs/FRONTEND_API_SPEC.md) · [인증·계정 API](docs/AUTH_API_SPEC.md) · [OpenAPI 계약](contracts/day-trip.openapi.json) |
+| 데이터·AI 연결 | [관광 API 선정](docs/API_SELECTION_GANGWON.md) · [AI 설정·평가](docs/AI_SETUP_AND_CHECK.md) |
+| 화면과 운영 확인 | [디자인 기준](docs/DESIGN.md) · [개인정보 운영](docs/PRIVACY_OPERATIONS.md) · [검증 기록](docs/VALIDATION.md) |
 
-작업 문서와 화면 안내는 한국어를 기준으로 한다. 현재 구현·운영 상태는 위 문서와 실제 코드를 따른다. 초기 개발용 핸드오프 자료는 Git 기록에 남겨두고 현재 저장소에서는 제외했다.
+실행 방법은 이 README, 구현 범위는 프로젝트 계획, 확인 결과와 남은 검증은 검증 기록을 기준으로 한다. 이전 초안과 중복 문서는 Git 이력에서 확인할 수 있다.
 
 ## 기술 구성
 
@@ -51,7 +44,7 @@
 | 개인 저장 | 비회원은 이 브라우저에 최근 코스·직접 방문 체크·메모 저장 |
 | 로그인·서버 DB | 카카오 로그인, PostgreSQL 회원·세션·계정별 코스 저장·조회·삭제, 회원 탈퇴 |
 
-기존 저장소의 Next.js 구조에서 React 프런트를 구현한다. 개발·운영 모두 Next.js의 경로 연결로 `/api/v1/day-trip` 요청을 FastAPI에 전달한다.
+기존 저장소의 Next.js 구조에서 React 프런트를 구현한다. 개발·운영 모두 Next.js의 경로 연결로 `/api/v1/day-trip`, `/api/v1/auth`, `/api/v1/account` 요청을 FastAPI에 전달한다.
 
 ## 사용 흐름
 
@@ -157,7 +150,7 @@ SQLAlchemy 모델과 Alembic 초기 변경을 구현하고 현재 로컬 DB에 �
 
 필드·관계·제약조건과 pgAdmin 확인 방법은 [테이블 구조](docs/DATABASE_SCHEMA.md)를 따른다. 확인용 데이터는 롤백하며 `alembic_version`은 별도 변경 이력 테이블이다.
 
-새 개발 환경은 `.env.example`의 로컬 DB 설정과 같은 비밀번호를 `DATABASE_URL`에 반영한 뒤 실행한다. 이전에 초기화한 Windows PostgreSQL은 중지 상태로 유지한다. 두 방식은 같은 포트를 사용하며 서로 다른 저장 공간을 사용하므로 동시에 실행하거나 같은 DB 데이터로 취급하지 않는다. 상세 실행·중지 방법과 대체 실행 방법은 [PostgreSQL 연결 안내](docs/POSTGRESQL_PLAN.md)를 따른다.
+`.env.example`의 `STORYROUTE_DB_*` 값과 `DATABASE_URL`의 사용자·비밀번호·DB 이름을 일치시킨다. URL 안의 비밀번호에 특수문자가 있으면 URL 인코딩한다. 이미 초기화한 저장 볼륨의 DB 비밀번호는 환경변수만 바꿔도 변경되지 않으므로 별도 비밀번호 변경이 필요하다. `docker compose stop`은 데이터를 보존한다. 기존 PostgreSQL이 55432 포트를 사용하고 있다면 포트 충돌부터 해결한다.
 
 ## 프런트 실행
 
@@ -175,7 +168,7 @@ npm run dev
 
 ## 구현한 흐름
 
-2026년 10월 9일 기준이다. 구현 여부, 자동 검증, 실제 외부 연결, 모바일 브라우저 확인을 구분하며 상세 근거는 [검증 기록](docs/VALIDATION.md)에 남긴다.
+2026년 10월 17일 코드 점검 기준이다. 실제 외부 연결 확인은 아래 표의 과거 기록이며 이번 문서 정리에서 다시 실행한 결과는 아니다. 구현 여부, 자동 검증, 실제 외부 연결, 모바일 브라우저 확인을 구분하며 상세 근거는 [검증 기록](docs/VALIDATION.md)에 남긴다.
 
 | 기능 | 현재 상태 | 제공 범위 |
 |---|---|---|

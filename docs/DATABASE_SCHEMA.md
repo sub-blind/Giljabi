@@ -1,20 +1,27 @@
-# PostgreSQL 테이블 설계
+# 데이터베이스 구조와 ERD
 
-관계와 저장 경계를 먼저 훑으려면 [데이터 모델과 ERD](./DATA_MODEL.md)를 본다. 이 문서는 컬럼·제약·인덱스와 운영 확인 절차를 자세히 설명한다.
-
-2026년 9월 30일 현행화 · SQLAlchemy 모델·초기 Alembic 마이그레이션 구현 및 로컬 DB 적용 완료.
+2026년 10월 17일 코드 점검 기준. 실제 DB 검증 날짜와 실행 범위는 [검증 기록](VALIDATION.md)을 따른다.
 
 로그인 유지와 사용자별 코스 저장에 필요한 테이블을 생성했다. 카카오 로그인은 `users`와 `auth_sessions`에, 계정별 코스는 `courses`와 `course_places`에 연결했다. 방문 체크·개인 메모는 현재 브라우저에만 저장하며 `place_records`는 향후 계정 동기화를 위한 확장 구조로 아직 API에 연결하지 않았다. 공개 리뷰·사진 업로드는 이번 범위에서 제외했다.
 
 ## 관계
 
-```mermaid
-erDiagram
-    users ||--o{ courses : "코스 소유"
-    users ||--o{ auth_sessions : "로그인 세션"
-    courses ||--|{ course_places : "장소 1~3개"
-    course_places ||--o| place_records : "개인 방문 기록"
-```
+![사용자·세션·코스의 관계](assets/storyroute-erd.svg)
+
+[ERD 원본](assets/storyroute-erd.mmd)
+
+`users`의 유일성은 `provider`와 `provider_user_id`의 **조합**이다. `place_records`는 스키마만 있으며 현재 방문 기록 API에 연결하지 않았다.
+
+## 브라우저와 DB의 저장 경계
+
+| 데이터 | 저장 위치와 범위 |
+|---|---|
+| 계정 코스 | PostgreSQL에 조건·장소 ID·순서 저장. 로그인한 소유자만 조회·삭제 |
+| 최근 코스 | 브라우저에 최근 코스 한 개 저장 |
+| 방문 체크·메모 | `storyroute.journey.v1:{정렬한 장소 ID 집합}`으로 브라우저 저장. 로그인해도 계정 동기화 없음 |
+| 시간 계획 | 현재 화면 상태. 저장 코스에 포함하지 않음 |
+
+방문 기록은 장소 ID 집합이 같으면 순서나 방문 날짜가 달라도 같은 기록을 사용한다. 여행 회차별 기록 분리는 아직 없다. 브라우저 데이터를 지우거나 다른 기기에서 열면 이 기록은 복원되지 않는다.
 
 UUID는 서버에서 생성하고 시간은 `timestamptz`로 저장한다. 생성·수정 시각은 서버가 관리하며 화면에서 한국 시간으로 표시한다. 별도 표시가 없는 필드는 필수다.
 
@@ -55,8 +62,8 @@ UUID는 서버에서 생성하고 시간은 `timestamptz`로 저장한다. 생�
 | user_id | uuid | `users.id` 외래키, 코스 소유자 |
 | title | varchar(80) | 공백만 있는 제목은 거절 |
 | intent | jsonb | 검증된 지역·기간·유형·키워드·선호 조건 |
-| started_at | timestamptz | NULL 허용, 사용자가 여행을 시작한 시각 |
-| version | integer | 기본값 1, 양수, 동시 수정 확인용 |
+| started_at | timestamptz | NULL 허용, 여행 시작 시각용 예약 필드 |
+| version | integer | 기본값 1, 양수, 동시 수정 확인용 예약 필드 |
 | created_at | timestamptz | 생성 시각 |
 | updated_at | timestamptz | 수정 시각 |
 
@@ -77,9 +84,9 @@ UUID는 서버에서 생성하고 시간은 `timestamptz`로 저장한다. 생�
 
 - `UNIQUE(course_id, source_service, content_id)`로 같은 코스의 장소 중복을 막는다.
 - `CHECK(position BETWEEN 1 AND 3)`와 `UNIQUE(course_id, position)`를 함께 적용해 DB에서도 최대 세 장소로 제한한다.
-- 순서의 UNIQUE 제약은 `DEFERRABLE INITIALLY IMMEDIATE`로 설계하고, 순서 교환 트랜잭션 안에서만 검사를 지연한다.
-- 최소 한 장소, 빠진 번호 없는 순서, 지원하는 콘텐츠 유형, 실제 장소 존재·강원도 소재 여부는 서버에서 검증한다.
-- 코스를 다시 열 때 실제 관광 API로 장소 존재·지역·유형을 재검증한다. 관광 소개·운영시간·사진 원본·AI 설명을 대량 저장하지 않는다. 조회 실패로 기존 저장 장소를 자동 삭제하지 않는다.
+- 순서의 UNIQUE 제약은 `DEFERRABLE INITIALLY IMMEDIATE`다. 순서 교환 시 지연할 수 있는 구조지만 현재 계정 코스 수정 API는 없다.
+- 계정 저장 API는 최소 한 장소·중복·ID 형식·지원 유형을 검사하고 1부터 연속한 순서를 부여한다. **저장 API 자체는 TourAPI를 재조회하지 않는다.** 정상 화면은 먼저 `/day-trip/course`에서 장소·지역·유형을 검증하지만, 저장 API 직접 호출의 실재성 검증은 보완 대상이다.
+- 화면에서 코스를 다시 열 때 저장 API로 받은 ID를 `/day-trip/course`에 보내 관광 API의 장소·지역·유형을 재검증한다. 저장 코스 GET 응답 자체가 재검증하는 것은 아니다. 관광 소개·운영시간·사진 원본·AI 설명을 대량 저장하지 않는다. 조회 실패로 기존 저장 장소를 자동 삭제하지 않는다.
 
 현재 계정 코스 API는 코스 전체 저장과 삭제를 제공한다. 계정 코스의 장소 교체·순서 수정 API를 추가할 때는 행의 ID를 유지해 연결된 기록이 사라지지 않도록 구현한다.
 
@@ -93,7 +100,7 @@ UUID는 서버에서 생성하고 시간은 `timestamptz`로 저장한다. 생�
 | created_at | timestamptz | 생성 시각 |
 | updated_at | timestamptz | 수정 시각 |
 
-방문 완료 여부는 `visited_at` 유무로 판단한다. 체크 해제 시 NULL로 바꾸고 메모는 유지한다. 실제 도착 시각이나 GPS 방문 인증으로 표현하지 않는다. 기록의 접근 권한은 장소 → 코스 → 소유자 관계로 확인한다. 다른 코스에 같은 관광 장소를 넣어도 기록은 분리한다.
+이 테이블은 후속 동기화를 위한 구조다. 연결한다면 `visited_at`으로 직접 방문 체크를 표현하고 장소 → 코스 → 소유자 관계로 권한을 검사해야 한다. 현재 이런 서버 API는 없으며, 실제 메모는 위의 브라우저 저장 규칙을 따른다.
 
 ## 삭제·인덱스·트랜잭션
 
@@ -117,8 +124,8 @@ UUID는 서버에서 생성하고 시간은 `timestamptz`로 저장한다. 생�
 .\.venv\Scripts\python.exe -X utf8 tools/check_db_schema.py
 ```
 
-pgAdmin에서 `storyroute → Schemas → public → Tables`를 새로 고침하면 위 다섯 테이블과 변경 이력용 `alembic_version`이 보인다. `alembic current` 결과는 `20260930_01 (head)`다. 같은 upgrade 명령을 다시 실행해도 적용된 변경을 반복하지 않는다.
+pgAdmin에서 `storyroute → Schemas → public → Tables`를 새로 고침하면 위 다섯 테이블과 변경 이력용 `alembic_version`이 보인다. 현재 코드의 마이그레이션 head는 `20260930_01`이며, 실제 연결한 DB의 적용 상태는 `alembic current`로 확인한다. 같은 upgrade 명령을 다시 실행해도 적용된 변경을 반복하지 않는다.
 
-실제 DB에서 중복·외래키·제목·JSON 타입·버전·최대 세 장소·메모 길이·순서 교환·체크 해제·연쇄 삭제 등 16개 사례를 확인했다. 검증은 프로젝트 전용 로컬 주소에서만 실행하며 확인용 데이터는 모두 롤백한다. 테이블과 마이그레이션 이력만 남기고 실제 사용자의 계정·코스·메모는 만들지 않았다. 초기 변경을 되돌리는 downgrade는 해당 테이블과 데이터를 삭제하므로 일반 실행 명령으로 사용하지 않는다.
+9월 18일 로컬 DB에서 중복·외래키·제목·JSON 타입·버전·최대 세 장소·메모 길이·순서 교환·체크 해제·연쇄 삭제 등 16개 사례를 확인했다. 검증은 프로젝트 전용 로컬 주소에서만 실행하며 확인용 데이터는 모두 롤백한다. 테이블과 마이그레이션 이력만 남기고 실제 사용자의 계정·코스·메모는 만들지 않았다. 초기 변경을 되돌리는 downgrade는 해당 테이블과 데이터를 삭제하므로 일반 실행 명령으로 사용하지 않는다. 자동 테스트의 downgrade 검증은 SQL 생성 확인이며 운영 DB를 실제로 되돌린 결과가 아니다.
 
 기존 회원의 과거 동의·연령을 추정하지 않는다. 새 확인 컬럼은 NULL로 시작하며, 새 로그인 콜백에서 서명된 확인 버전과 시각을 기록한다. 계정 삭제 시 이 기록도 함께 삭제한다.

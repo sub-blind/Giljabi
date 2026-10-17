@@ -31,8 +31,8 @@
     <path d="M44 110h242a14 14 0 0 1 14 14v36H30v-36a14 14 0 0 1 14-14z" fill="#7c3aed"/>
     <text x="50" y="143" class="entity-title">users</text>
     <text x="50" y="190" class="field key">PK  id</text><text x="172" y="190" class="field muted">uuid</text>
-    <text x="50" y="224" class="field">    provider</text><text x="172" y="224" class="field muted">varchar(20)</text>
-    <text x="50" y="258" class="field key">UK  provider_user_id</text>
+    <text x="50" y="224" class="field key">    provider</text><text x="172" y="224" class="field muted">varchar(20)</text>
+    <text x="50" y="258" class="field key">    provider_user_id</text>
     <text x="50" y="292" class="field">    nickname</text><text x="172" y="292" class="field muted">nullable</text>
     <text x="50" y="326" class="field">policy_version (nullable)</text>
     <text x="50" y="360" class="field">policy_confirmed_at (nullable)</text>
@@ -82,7 +82,7 @@
     <text x="1210" y="258" class="field">      memo</text><text x="1370" y="258" class="field muted">varchar(500)</text>
     <text x="1210" y="292" class="field">      created_at</text>
     <text x="1210" y="326" class="field">      updated_at</text>
-    <text x="1210" y="362" class="legend">장소마다 최대 한 기록</text>
+    <text x="1210" y="362" class="legend">스키마만 존재 · API 미연결</text>
   </g>
 
   <!-- auth_sessions -->
@@ -119,6 +119,6 @@
   <rect class="relation-label-bg" x="177" y="510" width="56" height="26" rx="13"/>
   <text x="205" y="528" text-anchor="middle" class="relation-label">1 : N</text>
 
-  <text x="410" y="707" class="legend">PK 기본키 · FK 외래키 · UK 복합 유일 제약에 참여 · course_places의 최소 1개 및 연속 순서는 API가 검증</text>
+  <text x="410" y="707" class="legend">PK 기본키 · FK 외래키 · users(provider, provider_user_id)는 조합 UNIQUE · 최소 1개 및 연속 순서는 API가 검증</text>
   <text x="410" y="731" class="legend">관광 상세 원문·사진·경로는 저장하지 않으며, content_id는 TourAPI 원천을 가리키는 논리 식별자입니다.</text>
 </svg>
