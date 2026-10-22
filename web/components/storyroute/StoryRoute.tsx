@@ -1,8 +1,9 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { useEffect, useReducer, useRef, useState } from "react";
-import { ArrowRight, Bookmark, LibraryBig, LogIn, LogOut, MapPin, RefreshCw, Route, Shuffle, Trash2, UserRound } from "lucide-react";
+import { ArrowRight, Bookmark, LibraryBig, LogIn, LogOut, MapPin, RefreshCw, Route, Trash2, UserRound } from "lucide-react";
 import { createCourse, getCourseRoute, getRegions, getStatus, parseIntent, searchPlaces } from "@/lib/api";
 import { loadCourse, saveCourse } from "@/lib/storyroute/storage";
 import { canTryServerFeature, connectionTimeoutsForAttempt, nextConnectionRetryDelay, type ConnectionState } from "@/lib/storyroute/connection";
@@ -37,6 +38,13 @@ function normalize(intent: Intent): Intent {
   return { ...intent, keywords };
 }
 
+function ReplacementThumbnail({ place }: { place: Place }) {
+  const [failed, setFailed] = useState(false);
+  return place.imageUrl && !failed
+    ? <Image src={place.imageUrl} alt="" width={52} height={48} unoptimized loading="lazy" onError={() => setFailed(true)} />
+    : <span className={styles.replacementNoPhoto}>사진 없음</span>;
+}
+
 export default function StoryRoute() {
   const auth = useAuth();
   const { error: authError, reload: reloadAuth } = auth;
@@ -50,6 +58,8 @@ export default function StoryRoute() {
   const [connectionState, setConnectionState] = useState<ConnectionState>("connecting");
   const [connectionAttempt, setConnectionAttempt] = useState(0);
   const [visiblePlaceCount, setVisiblePlaceCount] = useState(6);
+  const [replacementFor, setReplacementFor] = useState<string | null>(null);
+  const [replacementVisibleCount, setReplacementVisibleCount] = useState(3);
   const [hasSaved, setHasSaved] = useState(false);
   const [route, setRoute] = useState<CourseRoute | null>(null);
   const [searchMode, setSearchMode] = useState<SearchMode>("conditions");
@@ -77,6 +87,7 @@ export default function StoryRoute() {
   const title = state.phase === "create" ? state.intent.city ? `${state.intent.city}에서 어떤 하루를 보낼까요?` : "어디로 떠나볼까요?" : state.phase === "discover" ? `${scope}에서 갈 곳을 골라보세요` : `${scope}, 나의 하루 코스`;
   const visiblePlaces = state.places.slice(0, visiblePlaceCount);
   const hiddenPlaceCount = Math.max(0, state.places.length - visiblePlaceCount);
+  const replacementCandidates = state.places.filter(place => !state.selectedIds.includes(place.id));
   const nextConnectionRetryDelayMs = nextConnectionRetryDelay(connectionAttempt);
   const tourismSearchReady = canTryServerFeature(connectionState, !!connection?.tourismReady);
   const busyMessage = state.busy === "intent" ? "여행 문장에서 지역과 관심사를 정리하고 있어요…"
@@ -235,15 +246,17 @@ export default function StoryRoute() {
     const exists = state.selectedIds.includes(id);
     if (!exists && state.selectedIds.length >= 3) { setMessage("최대 세 곳이에요. 먼저 한 곳을 빼거나 바꿔주세요."); return; }
     const ids = exists ? state.selectedIds.filter(value => value !== id) : [...state.selectedIds, id];
+    if (replacementFor === id) setReplacementFor(null);
     update({ selectedIds: ids, course: null }); setMessage(`${ids.length}곳을 골랐어요.`);
   }
 
-  function replace(id: string) {
-    const pool = state.places.filter(place => !state.selectedIds.includes(place.id));
-    if (!pool.length) { setMessage("현재 후보에 대안이 없어요. 다른 후보를 더 조회하거나 조건을 바꿔주세요."); return; }
-    const place = pool[Math.floor(Math.random() * pool.length)];
-    update({ selectedIds: state.selectedIds.map(value => value === id ? place.id : value), course: null });
-    setMessage(`새 장소로 바꿨어요. ${place.name}`);
+  function replace(currentId: string, nextId: string) {
+    if (busy || !state.selectedIds.includes(currentId) || state.selectedIds.includes(nextId)) return;
+    const place = state.places.find(candidate => candidate.id === nextId);
+    if (!place) return;
+    update({ selectedIds: state.selectedIds.map(value => value === currentId ? nextId : value), course: null });
+    setReplacementFor(null);
+    setMessage(`${place.name}(으)로 바꿨어요.`);
   }
 
   async function replaceCoursePlace(currentId: string, nextId: string) {
@@ -293,6 +306,7 @@ export default function StoryRoute() {
       const result = await searchPlaces(intent, more ? state.page + 1 : 1, signal);
       if (id !== requestId.current) return;
       if (!more) setRoute(null);
+      if (!more) setReplacementFor(null);
       const places = more ? [...new Map([...state.places, ...result.places].map(place => [place.id, place])).values()] : result.places;
       update({ places, intent: result.appliedIntent, appliedIntent: result.appliedIntent,
         selectedIds: more ? state.selectedIds : [], course: more ? state.course : null,
@@ -487,10 +501,23 @@ export default function StoryRoute() {
           {!hiddenPlaceCount && state.hasMore && <button className={`${styles.secondary} ${styles.full}`} type="button" disabled={busy} onClick={() => void search(true)}>다음 검색 결과 불러오기</button>}
         </section><aside id="selected-places" className={`${styles.panel} ${styles.selectionTray} ${!selected.length ? styles.selectionTrayEmpty : ""}`} aria-label="선택한 장소"><div className={styles.row}><h2>나의 하루</h2><span className={styles.tag}>{selected.length} / 3곳</span></div>
           {selected.map((place, index) => <div className={styles.selectedStop} key={place.id}><strong>{index + 1}. {place.name}</strong><div className={styles.stopActions}>
-            <button className={styles.textButton} type="button" disabled={busy} onClick={() => replace(place.id)} aria-label={`${place.name} 다른 장소로 바꾸기`}><Shuffle size={14} aria-hidden="true" />다른 장소</button>
-            <button className={styles.textButton} type="button" disabled={busy} onClick={() => pick(place.id)} aria-label={`${place.name} 빼기`}><Trash2 size={14} aria-hidden="true" />빼기</button></div></div>)}
+            <button className={styles.textButton} type="button" disabled={busy} aria-expanded={replacementFor === place.id} aria-controls={`replace-${place.id}`} onClick={() => { setReplacementFor(current => current === place.id ? null : place.id); setReplacementVisibleCount(3); }} aria-label={`${place.name} 다른 장소로 바꾸기`}>다른 장소 고르기</button>
+            <button className={styles.textButton} type="button" disabled={busy} onClick={() => pick(place.id)} aria-label={`${place.name} 빼기`}><Trash2 size={14} aria-hidden="true" />빼기</button></div>
+            {replacementFor === place.id && <div className={styles.replacementChoices} id={`replace-${place.id}`}>
+              <p className={styles.replacementHint}>바꿀 장소를 직접 골라주세요. 선택 전에는 현재 장소가 그대로 유지돼요.</p>
+              {replacementCandidates.length ? <>
+                <div className={styles.replacementList}>{replacementCandidates.slice(0, replacementVisibleCount).map(candidate => <button key={candidate.id} className={styles.replacementOption} type="button" disabled={busy} onClick={() => replace(place.id, candidate.id)} aria-label={`${place.name}을 ${candidate.name}(으)로 바꾸기`}>
+                  <ReplacementThumbnail place={candidate} />
+                  <span className={styles.replacementInfo}><b>{candidate.name}</b><small>{candidate.city} · {categoryLabels[candidate.category]}</small><small>{candidate.address}</small></span>
+                </button>)}</div>
+                {replacementCandidates.length > replacementVisibleCount && <button className={styles.textButton} type="button" disabled={busy} onClick={() => setReplacementVisibleCount(count => count + 3)}>후보 더 보기 ({replacementCandidates.length - replacementVisibleCount}개 남음)</button>}
+              </> : <p className={styles.replacementHint}>현재 조회된 다른 장소가 없어요.</p>}
+              {!replacementCandidates.length && state.hasMore && <button className={styles.textButton} type="button" disabled={busy} onClick={() => void search(true)}>다음 검색 결과 불러오기</button>}
+              <button className={styles.textButton} type="button" onClick={() => setReplacementFor(null)}>취소</button>
+            </div>}
+          </div>)}
           {!selected.length && <p className={styles.emptySelection}>마음에 드는 장소를 담아보세요.</p>}
-          <p className={styles.small}>한두 곳으로도 출발할 수 있어요.<br />다른 장소는 현재 조회된 후보 안에서 뽑아요.</p>
+          <p className={styles.small}>한두 곳으로도 출발할 수 있어요.<br />장소를 바꾸려면 조회된 후보 중에서 직접 골라주세요.</p>
           <button className={`${styles.primary} ${styles.full}`} type="button" disabled={busy || !selected.length} onClick={() => void build()}>{state.busy === "course" ? "실제 장소 확인 중…" : "내 하루 코스 만들기 →"}</button>
         </aside></div>
       </> : state.course ? <>
