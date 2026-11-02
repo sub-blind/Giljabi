@@ -58,6 +58,7 @@ export default function StoryRoute() {
   const [connectionState, setConnectionState] = useState<ConnectionState>("connecting");
   const [connectionAttempt, setConnectionAttempt] = useState(0);
   const [visiblePlaceCount, setVisiblePlaceCount] = useState(6);
+  const [mobileSelectionOpen, setMobileSelectionOpen] = useState(false);
   const [replacementFor, setReplacementFor] = useState<string | null>(null);
   const [replacementVisibleCount, setReplacementVisibleCount] = useState(3);
   const [hasSaved, setHasSaved] = useState(false);
@@ -69,6 +70,8 @@ export default function StoryRoute() {
   const [accountBusy, setAccountBusy] = useState(false);
   const [pendingRestore, setPendingRestore] = useState<boolean | null>(null);
   const [slowRequest, setSlowRequest] = useState(false);
+  const mobileSelectionToggleRef = useRef<HTMLButtonElement>(null);
+  const mobileSelectionCloseRef = useRef<HTMLButtonElement>(null);
   const lock = useRef(false);
   const requestId = useRef(0);
   const pending = useRef<AbortController | null>(null);
@@ -241,12 +244,26 @@ export default function StoryRoute() {
     setConnectionAttempt(value => value + 1);
   }
 
+  function closeMobileSelection() {
+    setMobileSelectionOpen(false);
+    requestAnimationFrame(() => mobileSelectionToggleRef.current?.focus());
+  }
+
+  function toggleMobileSelection() {
+    if (mobileSelectionOpen) closeMobileSelection();
+    else {
+      setMobileSelectionOpen(true);
+      requestAnimationFrame(() => mobileSelectionCloseRef.current?.focus());
+    }
+  }
+
   function pick(id: string) {
     if (busy) return;
     const exists = state.selectedIds.includes(id);
     if (!exists && state.selectedIds.length >= 3) { setMessage("최대 세 곳이에요. 먼저 한 곳을 빼거나 바꿔주세요."); return; }
     const ids = exists ? state.selectedIds.filter(value => value !== id) : [...state.selectedIds, id];
     if (replacementFor === id) setReplacementFor(null);
+    if (!ids.length) setMobileSelectionOpen(false);
     update({ selectedIds: ids, course: null }); setMessage(`${ids.length}곳을 골랐어요.`);
   }
 
@@ -306,7 +323,7 @@ export default function StoryRoute() {
       const result = await searchPlaces(intent, more ? state.page + 1 : 1, signal);
       if (id !== requestId.current) return;
       if (!more) setRoute(null);
-      if (!more) setReplacementFor(null);
+      if (!more) { setReplacementFor(null); setMobileSelectionOpen(false); }
       const places = more ? [...new Map([...state.places, ...result.places].map(place => [place.id, place])).values()] : result.places;
       update({ places, intent: result.appliedIntent, appliedIntent: result.appliedIntent,
         selectedIds: more ? state.selectedIds : [], course: more ? state.course : null,
@@ -322,6 +339,7 @@ export default function StoryRoute() {
 
   async function build() {
     if (!state.selectedIds.length || !state.appliedIntent) return;
+    setMobileSelectionOpen(false);
     await run("course", async (id, signal) => {
       const course = await createCourse(state.selectedIds, state.appliedIntent!, signal, aiConsent);
       if (id !== requestId.current) return;
@@ -352,15 +370,17 @@ export default function StoryRoute() {
         intent: saved.intent, appliedIntent: saved.intent, intentReady: true, page: 1, hasMore: false });
       setNotices(course.notices); setMessage("저장한 코스의 실제 장소 정보를 다시 확인했어요.");
       if (saveToAccount && auth.authenticated) {
-        const stored = await saveAccountCourse(courseTitle(saved.intent), saved.placeIds, saved.intent);
+        const stored = await saveAccountCourse(courseTitle(saved.intent, course.orderedPlaces), saved.placeIds, saved.intent);
         setAccountCourses(current => [stored, ...current.filter(item => item.id !== stored.id)]);
         setMessage("로그인을 완료하고 코스를 내 계정에 저장했어요.");
       }
     });
   }
 
-  function courseTitle(intent: Intent) {
-    return `${intent.city ?? "강원도"} 하루 코스`;
+  function courseTitle(intent: Intent, places: Place[]) {
+    if (!places.length) return `${intent.city ?? "강원도"} 하루 코스`;
+    const suffix = places.length > 1 ? ` 외 ${places.length - 1}곳` : "";
+    return `${intent.city ?? "강원도"} · ${places[0].name.slice(0, 50)}${suffix}`;
   }
 
   async function openAccountCourse(saved: SavedAccountCourse) {
@@ -396,7 +416,7 @@ export default function StoryRoute() {
         JSON.stringify(course.intent) === JSON.stringify(state.appliedIntent));
       if (duplicate) { setMessage("이미 내 코스에 저장되어 있어요."); return true; }
       setAccountBusy(true);
-      void saveAccountCourse(courseTitle(state.appliedIntent), state.selectedIds, state.appliedIntent)
+      void saveAccountCourse(courseTitle(state.appliedIntent, state.course.orderedPlaces), state.selectedIds, state.appliedIntent)
         .then(stored => { setAccountCourses(current => [stored, ...current]); setMessage("내 계정에 코스를 저장했어요."); })
         .catch(err => setError(err instanceof Error ? err.message : "내 계정에 코스를 저장하지 못했어요."))
         .finally(() => setAccountBusy(false));
@@ -499,7 +519,7 @@ export default function StoryRoute() {
           {!state.places.length && <div className={styles.empty}><h2>담을 장소를 찾지 못했어요</h2><p>다른 지역이나 장소 유형을 골라보세요.</p><button className={styles.teal} type="button" onClick={() => update({ phase: "create" })}>조건 바꾸기</button></div>}
           {hiddenPlaceCount > 0 && <button className={`${styles.secondary} ${styles.full}`} type="button" disabled={busy} onClick={() => setVisiblePlaceCount(count => Math.min(count + 6, state.places.length))}>후보 {Math.min(6, hiddenPlaceCount)}개 더 보기</button>}
           {!hiddenPlaceCount && state.hasMore && <button className={`${styles.secondary} ${styles.full}`} type="button" disabled={busy} onClick={() => void search(true)}>다음 검색 결과 불러오기</button>}
-        </section><aside id="selected-places" className={`${styles.panel} ${styles.selectionTray} ${!selected.length ? styles.selectionTrayEmpty : ""}`} aria-label="선택한 장소"><div className={styles.row}><h2>나의 하루</h2><span className={styles.tag}>{selected.length} / 3곳</span></div>
+        </section><aside id="selected-places" className={`${styles.panel} ${styles.selectionTray} ${!selected.length ? styles.selectionTrayEmpty : ""} ${mobileSelectionOpen ? styles.selectionTrayOpen : ""}`} aria-label="선택한 장소" onKeyDown={event => { if (mobileSelectionOpen && event.key === "Escape") closeMobileSelection(); }}><div className={styles.row}><h2>나의 하루</h2><span className={styles.tag}>{selected.length} / 3곳</span><button ref={mobileSelectionCloseRef} className={styles.mobileSelectionClose} type="button" onClick={closeMobileSelection} aria-label="담은 장소 목록 닫기">닫기</button></div>
           {selected.map((place, index) => <div className={styles.selectedStop} key={place.id}><strong>{index + 1}. {place.name}</strong><div className={styles.stopActions}>
             <button className={styles.textButton} type="button" disabled={busy} aria-expanded={replacementFor === place.id} aria-controls={`replace-${place.id}`} onClick={() => { setReplacementFor(current => current === place.id ? null : place.id); setReplacementVisibleCount(3); }} aria-label={`${place.name} 다른 장소로 바꾸기`}>다른 장소 고르기</button>
             <button className={styles.textButton} type="button" disabled={busy} onClick={() => pick(place.id)} aria-label={`${place.name} 빼기`}><Trash2 size={14} aria-hidden="true" />빼기</button></div>
@@ -536,7 +556,8 @@ export default function StoryRoute() {
           onDetail={(id, tab = "intro") => setDetail({ id, tab })} onReplace={(currentId, nextId) => void replaceCoursePlace(currentId, nextId)}
           onLoadAlternatives={() => void loadCourseAlternatives()} />
       </> : null}
-      {state.phase === "discover" && !!selected.length && <div className={styles.mobileDock} role="status" aria-live="polite"><div><strong>{selected.length === 1 ? `${selected[0].name} 담았어요` : `${selected.length}곳 담았어요`}</strong><small>지금 선택한 장소로 방문 순서를 만들어요</small></div>
+      {state.phase === "discover" && mobileSelectionOpen && <button className={styles.mobileSelectionBackdrop} type="button" onClick={closeMobileSelection} aria-label="담은 장소 목록 닫기" />}
+      {state.phase === "discover" && !!selected.length && <div className={styles.mobileDock}><button ref={mobileSelectionToggleRef} className={styles.mobileSelectionToggle} type="button" disabled={busy} aria-expanded={mobileSelectionOpen} aria-controls="selected-places" onClick={toggleMobileSelection}><strong>{selected.length === 1 ? `${selected[0].name} 담았어요` : `${selected.length}곳 담았어요`}</strong><small>{mobileSelectionOpen ? "담은 장소 목록 닫기" : "담은 장소 확인·수정"}</small></button>
         <button className={styles.primary} type="button" disabled={busy} onClick={() => void build()}>{state.busy === "course" ? "확인 중…" : "코스 만들기"}<ArrowRight size={16} aria-hidden="true" /></button></div>}
     </main>
     <SiteFooter />

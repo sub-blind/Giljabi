@@ -11,7 +11,7 @@ export type SearchMode = "conditions" | "sentence" | "photos";
 const searchModes = [
   { id: "conditions", label: "지도로 찾기", icon: SlidersHorizontal },
   { id: "sentence", label: "문장으로 찾기", icon: MessageSquareText },
-  { id: "photos", label: "사진으로 찾기", icon: Images },
+  { id: "photos", label: "관광사진 보기", icon: Images },
 ] as const;
 
 export function SearchWorkspace({ mode, onMode, query, onQuery, intent, intentMode, onIntent, cities,

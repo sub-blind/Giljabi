@@ -74,6 +74,7 @@
 .cardActions { display:flex; gap:8px; margin-top:14px; }
 .cardActions > button { flex:1; min-width:0; }
 .selectionTray { position:sticky; top:20px; }
+.mobileSelectionClose,.mobileSelectionBackdrop { display:none; }
 .selectedStop { border-top:1px solid var(--sr-line); padding:16px 0 7px; margin-top:12px; }
 .selectedStop strong { display:block; font-size:14px; overflow-wrap:anywhere; }
 .stopActions { display:flex; gap:16px; }
@@ -953,3 +954,13 @@
 .photoViewerFooter { display:flex; flex-direction:column; gap:5px; min-height:82px; padding:16px 20px calc(16px + env(safe-area-inset-bottom)); font-size:14px; line-height:1.5; }
 .photoViewerFooter small { color:#c7d5cf; font-size:12px; }
 @media (max-width:767px) { .photoViewerHeader { padding-left:16px; padding-right:16px; } .photoViewerPrevious { left:8px; } .photoViewerNext { right:8px; } .photoViewerFooter { padding-left:16px; padding-right:16px; } }
+
+@media (max-width:767px) {
+  .selectionTray > .full { display:none; }
+  .mobileSelectionBackdrop { position:fixed; inset:0; z-index:999; display:block; width:100%; padding:0; border:0; background:#17232166; }
+  .selectionTrayOpen { position:fixed; z-index:1001; top:auto; right:12px; bottom:calc(77px + env(safe-area-inset-bottom)); left:12px; max-height:min(68dvh,620px); overflow-y:auto; overscroll-behavior:contain; box-shadow:0 8px 32px #17232124; }
+  .selectionTrayOpen .mobileSelectionClose { display:inline-flex; align-items:center; justify-content:center; min-height:40px; margin-left:auto; padding:0 10px; border:1px solid var(--sr-line); border-radius:8px; background:var(--sr-paper); color:var(--sr-ink); font:inherit; font-size:12px; cursor:pointer; }
+  .mobileDock { z-index:1002; }
+  .mobileDock .mobileSelectionToggle { display:block; flex:1; min-width:0; min-height:44px; padding:4px 0; border:0; background:transparent; color:var(--sr-ink); font:inherit; text-align:left; cursor:pointer; }
+  .mobileDock .mobileSelectionToggle:focus-visible,.mobileSelectionClose:focus-visible { outline:2px solid var(--sr-teal); outline-offset:2px; }
+}
