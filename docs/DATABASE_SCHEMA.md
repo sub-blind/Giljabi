@@ -1,6 +1,6 @@
 # 데이터베이스 구조와 ERD
 
-2026년 10월 17일 코드 점검 기준. 실제 DB 검증 날짜와 실행 범위는 [검증 기록](VALIDATION.md)을 따른다.
+2026년 11월 2일 코드 점검 기준. 실제 DB 검증 날짜와 실행 범위는 [검증 기록](VALIDATION.md)을 따른다.
 
 로그인 유지와 사용자별 코스 저장에 필요한 테이블을 생성했다. 카카오 로그인은 `users`와 `auth_sessions`에, 계정별 코스는 `courses`와 `course_places`에 연결했다. 방문 체크·개인 메모는 현재 브라우저에만 저장하며 `place_records`는 향후 계정 동기화를 위한 확장 구조로 아직 API에 연결하지 않았다. 공개 리뷰·사진 업로드는 이번 범위에서 제외했다.
 
@@ -60,7 +60,7 @@ UUID는 서버에서 생성하고 시간은 `timestamptz`로 저장한다. 생�
 |---|---|---|
 | id | uuid | 기본키 |
 | user_id | uuid | `users.id` 외래키, 코스 소유자 |
-| title | varchar(80) | 공백만 있는 제목은 거절 |
+| title | varchar(80) | 공백만 있는 제목은 거절. 새 화면 저장은 지역·첫 장소 이름·나머지 장소 수로 구성 |
 | intent | jsonb | 검증된 지역·기간·유형·키워드·선호 조건 |
 | started_at | timestamptz | NULL 허용, 여행 시작 시각용 예약 필드 |
 | version | integer | 기본값 1, 양수, 동시 수정 확인용 예약 필드 |
