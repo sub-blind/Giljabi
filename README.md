@@ -1,5 +1,7 @@
 # StoryRoute
 
+[![CI](https://github.com/sub-blind/Giljabi/actions/workflows/ci.yml/badge.svg)](https://github.com/sub-blind/Giljabi/actions/workflows/ci.yml)
+
 원하는 여행을 말하거나 사진을 보며 실제 관광 장소를 골라 나만의 강원도 하루 코스를 만드는 반응형 웹 서비스다. 한 사람이 프런트와 백엔드를 개발하며, 최대 세 장소를 선택한다. 한두 장소로도 코스를 만들 수 있다.
 
 강원특별자치도 전체 검색과 18개 시·군 선택을 지원한다. 관광사진에서 지역을 발견하고 장소 상세에서 오디 원본 이야기와 기준월 연관 관광지를 살펴볼 수 있다. 데이터 판단은 [강원도 API 선정안](docs/API_SELECTION_GANGWON.md)을 따른다.
@@ -169,6 +171,8 @@ npm run dev
 현재 기능과 제외 범위는 [프로젝트 계획](docs/PROJECT_PLAN.md), 날짜별 자동·실연동 확인 결과는 [검증 기록](docs/VALIDATION.md)을 기준으로 한다. 후보 카드 표시·선택·순서 변경에는 LLM을 호출하지 않으며, AI가 없거나 실패해도 직접 조건 선택과 실제 관광 검색을 이용할 수 있다.
 
 ## 검증
+
+`dev`·`main` 푸시와 풀리퀘스트에서는 GitHub Actions가 비밀키 없이 백엔드 기본 테스트와 프런트 타입·린트·테스트·빌드를 실행한다. 실제 관광·AI·DB 통합 검증은 아래 명령을 필요한 환경에서 별도로 실행한다.
 
 프로젝트 루트:
 
