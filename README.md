@@ -172,12 +172,14 @@ npm run dev
 
 ## 검증
 
-`dev`·`main` 푸시와 풀리퀘스트에서는 GitHub Actions가 비밀키 없이 백엔드 기본 테스트와 프런트 타입·린트·테스트·빌드를 실행한다. 실제 관광·AI·DB 통합 검증은 아래 명령을 필요한 환경에서 별도로 실행한다.
+`dev`·`main` 푸시와 풀리퀘스트에서는 GitHub Actions가 비밀키 없이 백엔드 기본 테스트, Python·프런트 운영 의존성 보안 검사와 프런트 타입·린트·테스트·빌드를 실행한다. 실제 관광·AI·DB 통합 검증은 아래 명령을 필요한 환경에서 별도로 실행한다.
 
 프로젝트 루트:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m pip install pip-audit
+.\.venv\Scripts\python.exe -m pip_audit -r requirements.txt
 .\.venv\Scripts\python.exe -m pytest -q
 .\.venv\Scripts\python.exe tools/check_live_tourism.py
 .\.venv\Scripts\python.exe tools/check_extra_tourism.py
@@ -190,6 +192,7 @@ npm run dev
 npm run typecheck
 npm run lint
 npm test
+npm audit --audit-level=high
 npm run build
 ```
 

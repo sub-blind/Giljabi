@@ -42,37 +42,62 @@ def create_app() -> FastAPI:
     app.state.database = Database(settings)
 
     origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
+    if not origins:
+        raise RuntimeError("CORS_ORIGINS에 허용할 프런트 주소를 하나 이상 설정해주세요.")
+    allowed_origins = {origin.rstrip("/") for origin in origins}
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=origins or ["*"],
+        allow_origins=origins,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+        allow_headers=["Accept", "Content-Type"],
     )
 
     hits = defaultdict(deque)
 
     @app.middleware("http")
-    async def protect_day_trip(request: Request, call_next):
-        if request.url.path.startswith("/api/v1/day-trip/"):
-            if not request.url.path.endswith("/status"):
-                now = time.monotonic()
-                for key in list(hits):
-                    if not hits[key] or now - hits[key][-1] > 60:
-                        del hits[key]
-                key = request.client.host if request.client else "unknown"
-                queue = hits[key]
-                while queue and now - queue[0] > 60:
-                    queue.popleft()
-                if len(queue) >= 30:
-                    return JSONResponse({"error": {"code": "RATE_LIMIT", "message": "잠시 쉬었다가 다시 시도해주세요.", "retryable": True}}, status_code=429)
-                queue.append(now)
-            response = await call_next(request)
-            response.headers["Cache-Control"] = "no-store"
-            response.headers["X-Content-Type-Options"] = "nosniff"
-            return response
+    async def protect_api(request: Request, call_next):
+        path = request.url.path
+        is_day_trip = path.startswith("/api/v1/day-trip/")
+        is_private_api = path.startswith(("/api/v1/auth/", "/api/v1/account/"))
+
+        # 쿠키 인증을 사용하는 변경 요청은 허용한 프런트에서 시작했는지 한 번 더 확인한다.
+        if is_private_api and request.method in {"POST", "PUT", "PATCH", "DELETE"}:
+            origin = request.headers.get("origin")
+            if origin and origin.rstrip("/") not in allowed_origins:
+                return JSONResponse(
+                    {"error": {"code": "INVALID_ORIGIN", "message": "허용되지 않은 요청 출처입니다.", "retryable": False}},
+                    status_code=403,
+                )
+
+        limit = 0
+        scope = ""
+        if is_day_trip and not path.endswith("/status"):
+            limit, scope = 30, "day-trip"
+        elif is_private_api:
+            limit, scope = 120, "private-api"
+        if limit:
+            now = time.monotonic()
+            for key in list(hits):
+                if not hits[key] or now - hits[key][-1] > 60:
+                    del hits[key]
+            client = request.client.host if request.client else "unknown"
+            key = (scope, client)
+            queue = hits[key]
+            while queue and now - queue[0] > 60:
+                queue.popleft()
+            if len(queue) >= limit:
+                return JSONResponse(
+                    {"error": {"code": "RATE_LIMIT", "message": "잠시 쉬었다가 다시 시도해주세요.", "retryable": True}},
+                    status_code=429,
+                )
+            queue.append(now)
+
         response = await call_next(request)
-        if request.url.path.startswith("/api/v1/auth/"):
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        if is_day_trip:
+            response.headers["Cache-Control"] = "no-store"
+        if is_private_api:
             response.headers["Cache-Control"] = "no-store"
             response.headers["Referrer-Policy"] = "no-referrer"
         return response

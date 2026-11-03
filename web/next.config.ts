@@ -5,6 +5,18 @@ const backend = process.env.API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL
 const nextConfig: NextConfig = {
   // 개발 서버와 운영 미리보기의 산출물이 서로 덮어쓰지 않게 한다.
   distDir: process.env.STORYROUTE_DIST_DIR || ".next",
+  async headers() {
+    return [{
+      source: "/(.*)",
+      headers: [
+        { key: "Content-Security-Policy", value: "base-uri 'self'; frame-ancestors 'none'; object-src 'none'" },
+        { key: "X-Frame-Options", value: "DENY" },
+        { key: "X-Content-Type-Options", value: "nosniff" },
+        { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+        { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+      ],
+    }];
+  },
   async rewrites() {
     const api = backend.replace(/\/$/, "");
     return [
