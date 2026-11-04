@@ -16,19 +16,16 @@ interface JourneyPanelProps {
   candidates: Place[];
   route: CourseRoute | null;
   routeOverview: ReactNode;
-  routeReady: boolean;
-  routeBusy: boolean;
   busy: boolean;
   onSaveCourse: () => boolean;
-  onCheckRoute: () => void;
   onDetail: (id: string, tab?: DetailTab) => void;
   onReplace: (currentId: string, nextId: string) => void;
   onLoadAlternatives: () => void;
   onMove: (index: number, direction: number) => void;
 }
 
-export function JourneyPanel({ places, candidates, route, routeOverview, routeReady, routeBusy, busy, onSaveCourse,
-  onCheckRoute, onDetail, onReplace, onLoadAlternatives, onMove }: JourneyPanelProps) {
+export function JourneyPanel({ places, candidates, route, routeOverview, busy, onSaveCourse,
+  onDetail, onReplace, onLoadAlternatives, onMove }: JourneyPanelProps) {
   const [journey, setJourney] = useState<Journey | null>(null);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState("");
@@ -108,11 +105,6 @@ export function JourneyPanel({ places, candidates, route, routeOverview, routeRe
     document.getElementById("trip-route-overview")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  function checkRouteAndReveal() {
-    onCheckRoute();
-    requestAnimationFrame(revealRoute);
-  }
-
   const visited = new Set(journey?.visitedIds ?? []);
   const nextIndex = places.findIndex(place => !visited.has(place.id));
   const next = nextIndex >= 0 ? places[nextIndex] : null;
@@ -151,7 +143,7 @@ export function JourneyPanel({ places, candidates, route, routeOverview, routeRe
       <div className={styles.nextActions}>
         <button className={styles.primary} type="button" disabled={!ready || busy} onClick={start}><Play size={16} aria-hidden="true" />이 코스로 여행 시작</button>
         {places[0] && <a className={styles.secondary} href={directionsUrl(places[0])} target="_blank" rel="noopener noreferrer">카카오맵에서 첫 장소 찾기<ExternalLink size={15} aria-hidden="true" /></a>}
-        {places.length > 1 && <button className={styles.textButton} type="button" disabled={busy || !routeReady} onClick={checkRouteAndReveal}><Route size={15} aria-hidden="true" />{routeBusy ? "이동 확인 중…" : route ? "이동정보 새로 확인" : "이동정보 확인"}</button>}
+        {places.length > 1 && <button className={styles.textButton} type="button" disabled={busy} onClick={revealRoute}><Route size={15} aria-hidden="true" />지도·이동 보기</button>}
       </div>
     </div> : completed ? <div className={styles.completionCard}>
       <Check size={28} aria-hidden="true" /><div><strong>{places.length}곳을 모두 방문했어요</strong><p>장소별 메모는 이 브라우저에 남아 있어요. 오늘의 기억을 다시 살펴보세요.</p></div>
@@ -168,8 +160,7 @@ export function JourneyPanel({ places, candidates, route, routeOverview, routeRe
 
     {journey && <progress className={styles.progress} value={count} max={places.length} aria-label="직접 체크한 방문 진행률" />}
 
-    <div className={styles.timelineHeading}><div><p className={styles.eyebrow}>오늘의 순서</p><h3>{journey ? "남은 일정과 기록" : "방문 순서"}</h3></div>
-      {!route && places.length > 1 && <button className={styles.textButton} type="button" disabled={busy || !routeReady} onClick={checkRouteAndReveal}><Route size={15} aria-hidden="true" />이동 확인</button>}</div>
+    <div className={styles.timelineHeading}><div><p className={styles.eyebrow}>오늘의 순서</p><h3>{journey ? "남은 일정과 기록" : "방문 순서"}</h3></div></div>
 
     <ol className={styles.tripTimeline}>{places.map((place, index) => {
       const isVisited = visited.has(place.id);

@@ -238,7 +238,8 @@ def test_far_apart_stops_warn_with_straight_distance_only():
         return result
     with client(lambda *args: None, far) as api:
         result = api.post("/api/v1/day-trip/course", json={"intent": INTENT, "placeIds": ["14_2001", "12_2002"]}).json()
-        assert "직선거리" in result["notices"][0] and "이동시간" not in json.dumps(result, ensure_ascii=False)
+        assert "↔" in result["notices"][0] and "직선거리" in result["notices"][0]
+        assert "이동시간" not in json.dumps(result, ensure_ascii=False)
 
 @pytest.mark.parametrize("city", [None, "춘천시", "서울시"])
 def test_ai_city_nullable_schema_and_server_city_validation(city):

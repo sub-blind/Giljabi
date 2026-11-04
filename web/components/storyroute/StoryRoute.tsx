@@ -551,8 +551,7 @@ export default function StoryRoute() {
             </div>
             <DaySchedule places={state.course.orderedPlaces} route={activeRoute} />
           </section>}
-          routeReady={!!connection?.routeReady} routeBusy={state.busy === "route"} busy={busy}
-          onSaveCourse={save} onCheckRoute={() => void checkRoute()} onMove={move}
+          busy={busy} onSaveCourse={save} onMove={move}
           onDetail={(id, tab = "intro") => setDetail({ id, tab })} onReplace={(currentId, nextId) => void replaceCoursePlace(currentId, nextId)}
           onLoadAlternatives={() => void loadCourseAlternatives()} />
       </> : null}

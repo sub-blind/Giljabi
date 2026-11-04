@@ -509,7 +509,7 @@ class DayTripService:
         for first, second in zip(places, places[1:]):
             distance = distance_km(first, second)
             if distance is not None and distance > 20:
-                notices.append(f"{first['name']}과 {second['name']}은 직선거리 약 {distance:.0f}km 떨어져 있어요. 실제 이동 경로를 외부 지도에서 확인해주세요.")
+                notices.append(f"{first['name']} ↔ {second['name']} · 직선거리 약 {distance:.0f}km예요. 실제 이동 경로를 외부 지도에서 확인해주세요.")
         # 지도에서 지역·유형만 고른 코스는 별도의 AI 선호 근거가 필요하지 않다.
         # 이 경우 화면에서 쓰지 않는 AI 호출을 기다리지 않고 확인된 사실을 즉시 반환한다.
         preferences = query.intent.keywords + query.intent.preferences
